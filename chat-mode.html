@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat With Strangers 💬</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="index, follow">
+  <meta name="description" content="Chat with strangers instantly. No login, no signup. Anonymous chat rooms to talk with strangers online and make new friends.">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="icon" href="/favicon.png" type="image/png" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #e5f3ff;
+      color: #333;
+      overflow: hidden;
+    }
+    header {
+      background: #1a73e8;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 1.2em;
+    }
+    #nickname-prompt, #main-menu, #chat-container {
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+    }
+    input, button {
+      font-size: 1em;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      margin: 5px 0;
+      width: 100%;
+    }
+    button {
+      background: #1a73e8;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #155ab6;
+    }
+    #map {
+      height: 300px;
+      margin-top: 20px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #welcome-banner {
+      text-align: center;
+      font-size: 3em;
+      font-weight: bold;
+      color: #1a73e8;
+      margin-top: 60px;
+      margin-bottom: 20px;
+      font-family: 'Segoe UI', sans-serif;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+      animation: fadeIn 1.2s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header>Chat With Strangers 💬</header>
+  <div id="nickname-prompt">
+    <div id="welcome-banner">WELCOME</div>
+    <p>Enter your nickname:</p>
+    <input type="text" id="nickname-input" placeholder="e.g. Alex" />
+    <button onclick="startApp()">Continue</button>
+    <div id="map"><p>Loading map...</p></div>
+  </div>
+
+  <div id="main-menu" style="display:none;">
+    <button class="menu-btn" onclick="connectStranger()">1. Connect Stranger</button>
+    <button class="menu-btn" onclick="joinGroupChat()">2. Group Chat</button>
+    <button class="menu-btn" onclick="genderChat()">3. Gender Chat</button>
+  </div>
+
+  <style>
+    .menu-btn {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      font-size: 1.1em;
+      border-radius: 10px;
+      background-color: #1a73e8;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .menu-btn:hover {
+      background-color: #155ab6;
+    }
+  </style>
+  <div id="chat-container" style="display:none;">
+  <div id="partner-row">
+    <div id="partner-info">Chatting with: ...</div>
+  </div>
+  <div id="chat-box"></div>
+  <div id="typing-indicator"></div>
+  <div id="user-input">
+    <button id="toggle-btn" title="Next / Disconnect">🔁</button>
+    <input type="text" id="message-input" placeholder="Type a message..." />
+    <button id="send-btn">➤</button>
+  </div>
+</div>
+
+<style>
+  #chat-container {
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 600px;
+    margin: auto;
+    background: #fff;
+  }
+
+  #partner-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: #444;
+    color: white;
+  }
+
+  #chat-box {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 120px;
+  }
+
+  .message {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 15px;
+    max-width: 80%;
+    position: relative;
+    word-wrap: break-word;
+    font-size: 0.95em;
+  }
+
+  .message.incoming {
+    background: #f1f1f1;
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
+  }
+
+  .message.outgoing {
+    background: #dcf8c6;
+    align-self: flex-end;
+    border-bottom-right-radius: 0;
+  }
+
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .username {
+    font-weight: 600;
+    color: #1a73e8;
+  }
+
+  .timestamp {
+    font-size: 0.75em;
+    color: #888;
+    text-align: right;
+  }
+
+  .text {
+    display: block;
+    margin-top: 2px;
+  }
+
+  .avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  #typing-indicator {
+    font-size: 0.8em;
+    color: #888;
+    padding-left: 12px;
+    margin-bottom: 8px;
+  }
+
+  #user-input {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 600px;
+    margin: auto;
+    padding: 12px 10px;
+    background: #f9f9f9;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 101;
+  }
+
+  #user-input input {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 12px;
+    font-size: 1em;
+  }
+
+  #user-input button {
+    border-radius: 50%;
+    background: #1a73e8;
+    color: white;
+    padding: 12px;
+    width: 44px;
+    height: 44px;
+    font-size: 1.2em;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyB2lhbK9zLBQx5Tl_8Skw_uit0zmPr3DpY",
+    authDomain: "chitchat-709cc.firebaseapp.com",
+    databaseURL: "https://chitchat-709cc-default-rtdb.firebaseio.com",
+    projectId: "chitchat-709cc",
+    storageBucket: "chitchat-709cc.appspot.com",
+    messagingSenderId: "122065028796",
+    appId: "1:122065028796:web:a5a47552d92ceb5bf232b9"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  let nickname = "Anonymous", avatarURL = "", currentRoom = null;
+  let messagesRef = null, typingRef = null;
+  let myId = null;
+  const messageKeys = new Set();
+
+  const chatBox = document.getElementById("chat-box");
+  const userInput = document.getElementById("message-input");
+  const sendBtn = document.getElementById("send-btn");
+  const typingIndicator = document.getElementById("typing-indicator");
+  const partnerInfo = document.getElementById("partner-info");
+
+  // 🌍 Geolocation and map
+  if ("geolocation" in navigator) {
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+        const map = L.map('map').setView([lat, lon], 10);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        L.marker([lat, lon]).addTo(map)
+          .bindPopup(`You are here: [${lat.toFixed(2)}, ${lon.toFixed(2)}]`).openPopup();
+      },
+      error => fallbackMap()
+    );
+  } else {
+    fallbackMap();
+  }
+
+  function fallbackMap() {
+    const map = L.map('map').setView([20.5937, 78.9629], 4);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    L.marker([20.5937, 78.9629]).addTo(map)
+      .bindPopup("Default location: India").openPopup();
+  }
+
+  function startApp() {
+    const input = document.getElementById("nickname-input").value.trim();
+    if (input) nickname = input;
+    avatarURL = `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(nickname)}`;
+    document.getElementById("nickname-prompt").style.display = "none";
+    document.getElementById("main-menu").style.display = "block";
+    document.getElementById("map").remove();
+  }
+</script>
+<script>
+  function connectStranger() {
+    document.getElementById("main-menu").style.display = "none";
+    document.getElementById("chat-container").style.display = "flex";
+    partnerInfo.textContent = "Chatting with: Stranger";
+    sendBtn.disabled = false;
+    toggleState = 1;
+    findPartner();
+  }
+
+  function joinGroupChat() {
+    document.getElementById("main-menu").style.display = "none";
+    document.getElementById("chat-container").style.display = "flex";
+    partnerInfo.textContent = "Chatting with: Everyone";
+    sendBtn.disabled = false;
+    toggleState = 1;
+    startChatRoom("group_room", "Everyone");
+  }
+
+  function genderChat() {
+    const gender = prompt("Enter preferred gender to chat with (male/female/any):").toLowerCase();
+    if (!["male", "female", "any"].includes(gender)) {
+      alert("Invalid gender. Please enter male, female, or any.");
+      return;
+    }
+    document.getElementById("main-menu").style.display = "none";
+    document.getElementById("chat-container").style.display = "flex";
+    partnerInfo.textContent = `Chatting with: ${gender}`;
+    sendBtn.disabled = false;
+    toggleState = 1;
+    findGenderPartner(gender);
+  }
+
+  function findPartner() {
+    const queueRef = db.ref("strangerQueue");
+    myId = db.ref().push().key;
+    const myData = { id: myId, nickname, avatar: avatarURL };
+    const myQueueRef = queueRef.push(myData);
+    myQueueRef.onDisconnect().remove();
+
+    queueRef.once("value", snapshot => {
+      const queue = snapshot.val();
+      for (let key in queue) {
+        const partner = queue[key];
+        if (partner.id !== myId && partner.nickname !== nickname) {
+          queueRef.child(key).remove();
+          myQueueRef.remove();
+          const ids = [myId, partner.id].sort();
+          const roomId = `private_${ids[0]}_${ids[1]}`;
+          startChatRoom(roomId, partner.nickname);
+          return;
+        }
+      }
+
+      queueRef.on("child_removed", snap => {
+        const left = snap.val();
+        if (left && left.id !== myId && left.nickname !== nickname) {
+          const ids = [myId, left.id].sort();
+          const roomId = `private_${ids[0]}_${ids[1]}`;
+          queueRef.off();
+          myQueueRef.remove();
+          startChatRoom(roomId, left.nickname);
+        }
+      });
+    });
+  }
+
+  function findGenderPartner(preferredGender) {
+    const queueRef = db.ref("genderQueue");
+    myId = db.ref().push().key;
+    const myData = { id: myId, nickname, avatar: avatarURL, gender: preferredGender };
+    const myQueueRef = queueRef.push(myData);
+    myQueueRef.onDisconnect().remove();
+
+    queueRef.once("value", snapshot => {
+      const queue = snapshot.val();
+      for (let key in queue) {
+        const partner = queue[key];
+        if (
+          partner.id !== myId &&
+          partner.nickname !== nickname &&
+          (preferredGender === "any" || partner.gender === preferredGender)
+        ) {
+          queueRef.child(key).remove();
+          myQueueRef.remove();
+          const ids = [myId, partner.id].sort();
+          const roomId = `gender_${ids[0]}_${ids[1]}`;
+          startChatRoom(roomId, partner.nickname);
+          return;
+        }
+      }
+
+      queueRef.on("child_removed", snap => {
+        const left = snap.val();
+        if (
+          left &&
+          left.id !== myId &&
+          left.nickname !== nickname &&
+          (preferredGender === "any" || left.gender === preferredGender)
+        ) {
+          const ids = [myId, left.id].sort();
+          const roomId = `gender_${ids[0]}_${ids[1]}`;
+          queueRef.off();
+          myQueueRef.remove();
+          startChatRoom(roomId, left.nickname);
+        }
+      });
+    });
+  }
+
+  function startChatRoom(roomId, partnerName) {
+    currentRoom = roomId;
+    messagesRef = db.ref(`rooms/${roomId}/messages`);
+    typingRef = db.ref(`rooms/${roomId}/typing`);
+    chatBox.innerHTML = "";
+    messageKeys.clear();
+    partnerInfo.textContent = `Chatting with: ${partnerName}`;
+    sendBtn.disabled = false;
+    listenForMessages();
+    listenForTyping();
+  }
+</script>
+<script>
+  // 🔁 Toggle Button Logic
+  const toggleBtn = document.getElementById("toggle-btn");
+  let toggleState = 0; // 0 = ready to connect, 1 = connected
+
+  toggleBtn.addEventListener("click", () => {
+    if (toggleState === 0) {
+      // Connect to new partner
+      chatBox.innerHTML = "";
+      messageKeys.clear();
+      partnerInfo.textContent = "Finding new partner...";
+      sendBtn.disabled = true;
+      findPartner();
+      toggleState = 1;
+    } else {
+      // Disconnect and stay idle
+      if (messagesRef) messagesRef.off();
+      if (typingRef) typingRef.off();
+      chatBox.innerHTML = "";
+      messageKeys.clear();
+      partnerInfo.textContent = "Disconnected. Tap 🔁 to reconnect.";
+      sendBtn.disabled = true;
+      toggleState = 0;
+    }
+  });
+
+  // ➤ Send Message
+  sendBtn.onclick = () => {
+    const text = userInput.value.trim();
+    if (!text || !messagesRef) return;
+    const timestamp = new Date().toLocaleTimeString('en-IN', { hour12: false });
+    const message = {
+      text,
+      timestamp,
+      user: nickname,
+      avatar: avatarURL,
+      reactions: {},
+      replyTo: null
+    };
+    messagesRef.push(message);
+    userInput.value = "";
+    typingRef.set(null);
+  };
+
+  // ✍️ Typing Indicator
+  userInput.addEventListener("input", () => {
+    if (typingRef) {
+      typingRef.set(nickname);
+      setTimeout(() => typingRef.set(null), 3000);
+    }
+  });
+
+  // 📥 Listen for Messages
+  function listenForMessages() {
+    if (!messagesRef) return;
+    messagesRef.off();
+    messagesRef.on("child_added", snapshot => {
+      const msg = snapshot.val();
+      const key = snapshot.key;
+      if (messageKeys.has(key)) return;
+      messageKeys.add(key);
+
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "message";
+      msgDiv.classList.add(msg.user === nickname ? "outgoing" : "incoming");
+
+      const avatar = document.createElement("img");
+      avatar.src = msg.avatar || "";
+      avatar.className = "avatar";
+      msgDiv.appendChild(avatar);
+
+      const metaDiv = document.createElement("div");
+      metaDiv.className = "meta";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "username";
+      nameSpan.textContent = msg.user || "Anonymous";
+
+      const timeSpan = document.createElement("span");
+      timeSpan.className = "timestamp";
+      timeSpan.textContent = msg.timestamp;
+
+      metaDiv.appendChild(nameSpan);
+      metaDiv.appendChild(timeSpan);
+      msgDiv.appendChild(metaDiv);
+
+      const textSpan = document.createElement("span");
+      textSpan.className = "text";
+      textSpan.textContent = msg.text;
+      msgDiv.appendChild(textSpan);
+
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+  }
+
+  // 👀 Listen for Typing
+  function listenForTyping() {
+    if (!typingRef) return;
+    typingRef.off();
+    typingRef.on("value", snapshot => {
+      const name = snapshot.val();
+      typingIndicator.textContent = name && name !== nickname ? `${name} is typing...` : "";
+    });
+  }
+
+  // 📱 Pull-to-Refresh for Mobile
+  let startY = 0;
+  let isRefreshing = false;
+
+  document.addEventListener("touchstart", e => {
+    if (document.documentElement.scrollTop === 0) {
+      startY = e.touches[0].clientY;
+    }
+  });
+
+  document.addEventListener("touchmove", e => {
+    const currentY = e.touches[0].clientY;
+    if (!isRefreshing && currentY - startY > 100) {
+      isRefreshing = true;
+      location.reload();
+    }
+  });
+
+  document.addEventListener("touchend", () => {
+    isRefreshing = false;
+  });
+</script>
+</body>
+</html>
