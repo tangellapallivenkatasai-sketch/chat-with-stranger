@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" aria-label="Redirect Page">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="description" content="Redirecting to chat mode on ChatWithStranger..." />
+  <title>Redirecting to Chat Mode...</title>
+  <link rel="icon" href="/favicon.png" type="image/png" />
+
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="Chat With Strangers 💬">
+  <meta name="description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chatwithstranger.online/">
+  <meta property="og:title" content="Chat With Strangers 💬">
+  <meta property="og:description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!">
+  <meta property="og:image" content="https://chatwithstranger.online/preview.png">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://chatwithstranger.online/">
+  <meta property="twitter:title" content="Chat With Strangers 💬">
+  <meta property="twitter:description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!">
+  <meta property="twitter:image" content="https://chatwithstranger.online/preview.png">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+      background: #f4f4f4;
+    }
+    a {
+      color: #1a73e8;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    .spinner {
+      margin: 20px auto;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #ccc;
+      border-top: 4px solid #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+
+  <script>
+    setTimeout(() => {
+      window.location.replace("chat-mode.html");
+    }, 3000);
+  </script>
+</head>
+<body>
+  <h2>Redirecting you to Chat Mode...</h2>
+  <p>If you're not redirected automatically, <a href="chat-mode.html">click here</a>.</p>
+  <div class="spinner"></div>
+</body>
+</html>
