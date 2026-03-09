@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" aria-label="Redirect Page">
+<html lang="en" aria-label="Verification Page">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="index, follow" />
   <meta name="description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!" />
-  <title>Redirecting to Chat Mode...</title>
+  <title>Verify You're Human</title>
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="canonical" href="https://chatwithstranger.online/" />
 
@@ -46,21 +46,67 @@
       border-top: 4px solid #1a73e8;
       border-radius: 50%;
       animation: spin 1s linear infinite;
+      display: none;
     }
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    .verify-box {
+      background: #fff;
+      padding: 20px;
+      margin: auto;
+      max-width: 400px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+    input {
+      padding: 8px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      width: 80%;
+    }
+    button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #155ab6;
+    }
   </style>
-
-  <script>
-    setTimeout(() => {
-      window.location.replace("chat-mode.html");
-    }, 3000);
-  </script>
 </head>
 <body>
-  <h2>Redirecting you to Chat Mode...</h2>
-  <p>If you're not redirected automatically, <a href="chat-mode.html">click here</a>.</p>
-  <div class="spinner"></div>
+  <div class="verify-box">
+    <h2>Verify You're Human</h2>
+    <p>Please solve this simple challenge:</p>
+    <p>What is 3 + 4?</p>
+    <input id="math-check" placeholder="Enter answer" />
+    <br>
+    <button onclick="checkAnswer()">Verify</button>
+    <div class="spinner" id="spinner"></div>
+    <p id="error" style="color:red;"></p>
+  </div>
+
+  <script>
+    function checkAnswer() {
+      const answer = document.getElementById("math-check").value.trim();
+      const spinner = document.getElementById("spinner");
+      const errorMsg = document.getElementById("error");
+
+      if (answer === "7") {
+        errorMsg.textContent = "";
+        spinner.style.display = "block";
+        setTimeout(() => {
+          window.location.href = "chat-mode.html";
+        }, 2000);
+      } else {
+        errorMsg.textContent = "Wrong answer. Try again.";
+      }
+    }
+  </script>
 </body>
 </html>
