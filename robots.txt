@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
 Sitemap: https://tangellapallivenkatasai-sketch.github.io/chat-with-stranger/sitemap.xml
+ ,robots.txt
