@@ -6,70 +6,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="index, follow">
   <meta name="description" content="Chat with strangers instantly. No login, no signup. Anonymous chat rooms to talk with strangers online and make new friends.">
+  <meta name="keywords" content="chat with strangers, anonymous chat, online chat rooms, make friends, random chat">
+  <meta name="author" content="ChatWithStranger Team">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Chat With Strangers 💬">
+  <meta property="og:description" content="Chat instantly with strangers online. No login, no signup. Anonymous chat rooms to make new friends.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://chatwithstranger.online/chat-mode.html">
+  <meta property="og:image" content="https://chatwithstranger.online/favicon.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Chat With Strangers 💬">
+  <meta name="twitter:description" content="Chat instantly with strangers online. No login, no signup. Anonymous chat rooms to make new friends.">
+  <meta name="twitter:image" content="https://chatwithstranger.online/favicon.png">
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <link rel="icon" href="/favicon.png" type="image/png" />
   <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #e5f3ff;
-      color: #333;
-      overflow: hidden;
-    }
-    header {
-      background: #1a73e8;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 1.2em;
-    }
-    #nickname-prompt, #main-menu, #chat-container {
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-    }
-    input, button {
-      font-size: 1em;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin: 5px 0;
-      width: 100%;
-    }
-    button {
-      background: #1a73e8;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #155ab6;
-    }
-    #map {
-      height: 300px;
-      margin-top: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    #welcome-banner {
-      text-align: center;
-      font-size: 3em;
-      font-weight: bold;
-      color: #1a73e8;
-      margin-top: 60px;
-      margin-bottom: 20px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-      animation: fadeIn 1.2s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    html, body { height: 100%; margin: 0; font-family: 'Segoe UI', sans-serif; background: #e5f3ff; color: #333; overflow: hidden; }
+    header { background: #1a73e8; color: white; padding: 15px; text-align: center; font-size: 1.2em; }
+    #nickname-prompt, #main-menu, #chat-container { max-width: 600px; margin: auto; padding: 20px; }
+    input, button { font-size: 1em; padding: 10px; border-radius: 8px; border: none; margin: 5px 0; width: 100%; }
+    button { background: #1a73e8; color: white; cursor: pointer; }
+    button:hover { background: #155ab6; }
+    #map { height: 300px; margin-top: 20px; border-radius: 10px; overflow: hidden; }
+    #welcome-banner { text-align: center; font-size: 3em; font-weight: bold; color: #1a73e8; margin-top: 60px; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); animation: fadeIn 1.2s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
   </style>
 </head>
 <body>
   <script>
-    // 🔒 Block direct access if not verified
     if (!sessionStorage.getItem("verified")) {
       window.location.href = "index.html";
     }
@@ -90,45 +58,11 @@
     <button class="menu-btn" onclick="genderChat()">3. Gender Chat</button>
   </div>
   <style>
-    .menu-btn {
-      width: 100%;
-      padding: 15px;
-      margin: 10px 0;
-      font-size: 1.1em;
-      border-radius: 10px;
-      background-color: #1a73e8;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
+    .menu-btn { width: 100%; padding: 15px; margin: 10px 0; font-size: 1.1em; border-radius: 10px; background-color: #1a73e8; color: white; border: none; cursor: pointer; }
     .menu-btn:hover { background-color: #155ab6; }
-  </style>
-
-  <div id="chat-container" style="display:none;">
-    <div id="partner-row">
-      <div id="partner-info">Chatting with: ...</div>
-    </div>
-    <div id="chat-box"></div>
-    <div id="typing-indicator"></div>
-    <div id="user-input">
-      <button id="toggle-btn" title="Next / Disconnect">🔁</button>
-      <input type="text" id="message-input" placeholder="Type a message..." />
-      <button id="send-btn">➤</button>
-    </div>
-  </div>
-  <style>
-    #chat-container {
-      flex-direction: column;
-      height: 100vh;
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
-    }
+    #chat-container { flex-direction: column; height: 100vh; max-width: 600px; margin: auto; background: #fff; }
     #partner-row { background: #444; color: white; padding: 10px; }
-    #chat-box {
-      flex: 1; overflow-y: auto; padding: 10px;
-      display: flex; flex-direction: column; padding-bottom: 120px;
-    }
+    #chat-box { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; padding-bottom: 120px; }
     .message { margin-bottom: 15px; padding: 10px; border-radius: 15px; max-width: 80%; }
     .incoming { background: #f1f1f1; align-self: flex-start; border-bottom-left-radius: 0; }
     .outgoing { background: #dcf8c6; align-self: flex-end; border-bottom-right-radius: 0; }
@@ -137,14 +71,21 @@
     .timestamp { font-size: 0.75em; color: #888; }
     .avatar { width: 24px; height: 24px; border-radius: 50%; margin-right: 6px; }
     #typing-indicator { font-size: 0.8em; color: #888; padding-left: 12px; margin-bottom: 8px; }
-    #user-input {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      max-width: 600px; margin: auto; padding: 12px 10px;
-      background: #f9f9f9; display: flex; gap: 10px;
-    }
+    #user-input { position: fixed; bottom: 0; left: 0; right: 0; max-width: 600px; margin: auto; padding: 12px 10px; background: #f9f9f9; display: flex; gap: 10px; }
     #user-input input { flex: 1; border: 1px solid #ccc; border-radius: 20px; padding: 12px; }
     #user-input button { border-radius: 50%; background: #1a73e8; color: white; width: 44px; height: 44px; }
   </style>
+
+  <div id="chat-container" style="display:none;">
+    <div id="partner-row"><div id="partner-info">Chatting with: ...</div></div>
+    <div id="chat-box"></div>
+    <div id="typing-indicator"></div>
+    <div id="user-input">
+      <button id="toggle-btn" title="Next / Disconnect">🔁</button>
+      <input type="text" id="message-input" placeholder="Type a message..." />
+      <button id="send-btn">➤</button>
+    </div>
+  </div>
   <!-- Firebase + Leaflet -->
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -198,7 +139,6 @@
       L.marker([20.5937, 78.9629]).addTo(map)
         .bindPopup("Default location: India").openPopup();
     }
-
     // ✅ Start app only if verified
     function startApp() {
       if (!sessionStorage.getItem("verified")) {
@@ -213,6 +153,7 @@
       document.getElementById("main-menu").style.display = "block";
       document.getElementById("map").remove();
     }
+
     // 🔁 Toggle Button Logic
     const toggleBtn = document.getElementById("toggle-btn");
     let toggleState = 0; // 0 = idle, 1 = connected
@@ -245,9 +186,7 @@
         text,
         timestamp,
         user: nickname,
-        avatar: avatarURL,
-        reactions: {},
-        replyTo: null
+        avatar: avatarURL
       };
       messagesRef.push(message);
       userInput.value = "";
@@ -283,15 +222,12 @@
 
         const metaDiv = document.createElement("div");
         metaDiv.className = "meta";
-
         const nameSpan = document.createElement("span");
         nameSpan.className = "username";
         nameSpan.textContent = msg.user || "Anonymous";
-
         const timeSpan = document.createElement("span");
         timeSpan.className = "timestamp";
         timeSpan.textContent = msg.timestamp;
-
         metaDiv.appendChild(nameSpan);
         metaDiv.appendChild(timeSpan);
         msgDiv.appendChild(metaDiv);
@@ -319,13 +255,11 @@
     // 📱 Pull-to-Refresh for Mobile
     let startY = 0;
     let isRefreshing = false;
-
     document.addEventListener("touchstart", e => {
       if (document.documentElement.scrollTop === 0) {
         startY = e.touches[0].clientY;
       }
     });
-
     document.addEventListener("touchmove", e => {
       const currentY = e.touches[0].clientY;
       if (!isRefreshing && currentY - startY > 100) {
@@ -333,10 +267,87 @@
         location.reload();
       }
     });
-
     document.addEventListener("touchend", () => {
       isRefreshing = false;
     });
+    // 🔘 Connect Stranger
+    function connectStranger() {
+      document.getElementById("main-menu").style.display = "none";
+      document.getElementById("chat-container").style.display = "flex";
+      partnerInfo.textContent = "Chatting with: Stranger";
+      sendBtn.disabled = false;
+      toggleState = 1;
+      findPartner();
+    }
+
+    // 🔘 Group Chat
+    function joinGroupChat() {
+      document.getElementById("main-menu").style.display = "none";
+      document.getElementById("chat-container").style.display = "flex";
+      partnerInfo.textContent = "Chatting with: Everyone";
+      sendBtn.disabled = false;
+      toggleState = 1;
+      startChatRoom("group_room", "Everyone");
+    }
+
+    // 🔘 Gender Chat
+    function genderChat() {
+      const gender = prompt("Enter preferred gender (male/female/any):").toLowerCase();
+      if (!["male", "female", "any"].includes(gender)) {
+        alert("Invalid gender. Please enter male, female, or any.");
+        return;
+      }
+      document.getElementById("main-menu").style.display = "none";
+      document.getElementById("chat-container").style.display = "flex";
+      partnerInfo.textContent = `Chatting with: ${gender}`;
+      sendBtn.disabled = false;
+      toggleState = 1;
+      findGenderPartner(gender);
+    }
+
+    // 👥 Partner Matching
+    function findPartner() {
+      myId = Date.now().toString();
+      const queueRef = db.ref("queue");
+      const myQueueRef = queueRef.push({ id: myId, nickname });
+      queueRef.on("child_removed", snap => {
+        const left = snap.val();
+        if (left && left.id !== myId) {
+          const ids = [myId, left.id].sort();
+          const roomId = `room_${ids[0]}_${ids[1]}`;
+          queueRef.off(); myQueueRef.remove();
+          startChatRoom(roomId, left.nickname);
+        }
+      });
+    }
+
+    function findGenderPartner(preferredGender) {
+      myId = Date.now().toString();
+      const queueRef = db.ref("genderQueue");
+      const myQueueRef = queueRef.push({ id: myId, nickname, gender: preferredGender });
+      queueRef.on("child_removed", snap => {
+        const left = snap.val();
+        if (left && left.id !== myId && (preferredGender === "any" || left.gender === preferredGender)) {
+          const ids = [myId, left.id].sort();
+          const roomId = `gender_${ids[0]}_${ids[1]}`;
+          queueRef.off(); myQueueRef.remove();
+          startChatRoom(roomId, left.nickname);
+        }
+      });
+    }
+
+    // 🚪 Start Chat Room
+    function startChatRoom(roomId, partnerName) {
+      currentRoom = roomId;
+      messagesRef = db.ref(`rooms/${roomId}/messages`);
+      typingRef = db.ref(`rooms/${roomId}/typing`);
+      chatBox.innerHTML = "";
+      messageKeys.clear();
+      partnerInfo.textContent = `Chatting with: ${partnerName}`;
+      sendBtn.disabled = false;
+      listenForMessages();
+      listenForTyping();
+    }
   </script>
 </body>
 </html>
