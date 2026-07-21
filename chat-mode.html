@@ -1,555 +1,1149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Chat With Strangers 💬</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="index, follow">
-  <meta name="description" content="Chat with strangers instantly. No login, no signup. Anonymous chat rooms to talk with strangers online and make new friends.">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <link rel="icon" href="/favicon.png" type="image/png" />
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #e5f3ff;
-      color: #333;
-      overflow: hidden;
-    }
-    header {
-      background: #1a73e8;
-      color: white;
-      padding: 15px;
-      text-align: center;
-      font-size: 1.2em;
-    }
-    #nickname-prompt, #main-menu, #chat-container {
-      max-width: 600px;
-      margin: auto;
-      padding: 20px;
-    }
-    input, button {
-      font-size: 1em;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      margin: 5px 0;
-      width: 100%;
-    }
-    button {
-      background: #1a73e8;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #155ab6;
-    }
-    #map {
-      height: 300px;
-      margin-top: 20px;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    #welcome-banner {
-      text-align: center;
-      font-size: 3em;
-      font-weight: bold;
-      color: #1a73e8;
-      margin-top: 60px;
-      margin-bottom: 20px;
-      font-family: 'Segoe UI', sans-serif;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-      animation: fadeIn 1.2s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-  </style>
-</head>
-<body>
-  <header>Chat With Strangers 💬</header>
-  <div id="nickname-prompt">
-    <div id="welcome-banner">WELCOME</div>
-    <p>Enter your nickname:</p>
-    <input type="text" id="nickname-input" placeholder="e.g. Alex" />
-    <button onclick="startApp()">Continue</button>
-    <div id="map"><p>Loading map...</p></div>
-  </div>
-
-  <div id="main-menu" style="display:none;">
-    <button class="menu-btn" onclick="connectStranger()">1. Connect Stranger</button>
-    <button class="menu-btn" onclick="joinGroupChat()">2. Group Chat</button>
-    <button class="menu-btn" onclick="genderChat()">3. Gender Chat</button>
-  </div>
-
-  <style>
-    .menu-btn {
-      width: 100%;
-      padding: 15px;
-      margin: 10px 0;
-      font-size: 1.1em;
-      border-radius: 10px;
-      background-color: #1a73e8;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .menu-btn:hover {
-      background-color: #155ab6;
-    }
-  </style>
-  <div id="chat-container" style="display:none;">
-  <div id="partner-row">
-    <div id="partner-info">Chatting with: ...</div>
-  </div>
-  <div id="chat-box"></div>
-  <div id="typing-indicator"></div>
-  <div id="user-input">
-    <button id="toggle-btn" title="Next / Disconnect">🔁</button>
-    <input type="text" id="message-input" placeholder="Type a message..." />
-    <button id="send-btn">➤</button>
-  </div>
-</div>
-
+<meta charset="UTF-8" />
+<title>Chat With Strangers 💬</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="index, follow">
+<meta name="description" content="Chat with strangers instantly. No login, no signup. Anonymous chat rooms to talk with strangers online and make new friends.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="icon" href="/favicon.png" type="image/png" />
 <style>
-  #chat-container {
-    display: none;
-    flex-direction: column;
-    height: 100vh;
-    max-width: 600px;
-    margin: auto;
-    background: #fff;
+  :root{
+    --bg:#0b0d12;
+    --bg-elevated:#12151c;
+    --bg-elevated-2:#171b24;
+    --border:#242938;
+    --border-soft:#1c202b;
+    --text:#e7e9ee;
+    --text-dim:#9aa1b1;
+    --text-faint:#5c6376;
+    --accent:#5865f2;
+    --accent-hover:#4752c4;
+    --accent-soft:rgba(88,101,242,0.14);
+    --success:#3ba55c;
+    --danger:#ed4245;
+    --radius-sm:8px;
+    --radius-md:14px;
+    --radius-lg:20px;
+    --shadow-soft:0 8px 24px rgba(0,0,0,0.35);
+    --safe-bottom:env(safe-area-inset-bottom, 0px);
+    --safe-top:env(safe-area-inset-top, 0px);
   }
 
-  #partner-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background: #444;
-    color: white;
+  *{ box-sizing:border-box; }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overscroll-behavior-y:none;
   }
 
-  #chat-box {
-    flex: 1;
-    overflow-y: auto;
-    padding: 10px;
-    background: #fff;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 120px;
+  button{ font-family:inherit; }
+
+  a{ color:var(--accent); }
+
+  ::selection{ background:var(--accent-soft); }
+
+  /* focus visibility for a11y */
+  button:focus-visible,
+  input:focus-visible,
+  [tabindex]:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
   }
 
-  .message {
-    margin-bottom: 15px;
-    padding: 10px;
-    border-radius: 15px;
-    max-width: 80%;
-    position: relative;
-    word-wrap: break-word;
-    font-size: 0.95em;
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation-duration:0.001ms !important;
+      animation-iteration-count:1 !important;
+      transition-duration:0.001ms !important;
+      scroll-behavior:auto !important;
+    }
   }
 
-  .message.incoming {
-    background: #f1f1f1;
-    align-self: flex-start;
-    border-bottom-left-radius: 0;
+  /* ---------- App shell ---------- */
+  #app{
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
   }
 
-  .message.outgoing {
-    background: #dcf8c6;
-    align-self: flex-end;
-    border-bottom-right-radius: 0;
+  header.app-header{
+    padding:calc(14px + var(--safe-top)) 20px 14px;
+    text-align:center;
+    background:linear-gradient(180deg, rgba(88,101,242,0.10), transparent);
+    border-bottom:1px solid var(--border-soft);
   }
 
-  .meta {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 4px;
+  header.app-header h1{
+    margin:0;
+    font-size:1.05rem;
+    font-weight:600;
+    letter-spacing:0.2px;
   }
 
-  .username {
-    font-weight: 600;
-    color: #1a73e8;
+  header.app-header .logo-dot{
+    display:inline-block;
+    width:8px;height:8px;
+    border-radius:50%;
+    background:var(--success);
+    margin-right:8px;
+    box-shadow:0 0 0 3px rgba(59,165,92,0.15);
   }
 
-  .timestamp {
-    font-size: 0.75em;
-    color: #888;
-    text-align: right;
+  /* ---------- Screens ---------- */
+  .screen{
+    max-width:560px;
+    width:100%;
+    margin:0 auto;
+    padding:24px 20px calc(24px + var(--safe-bottom));
+    flex:1;
+    display:flex;
+    flex-direction:column;
   }
 
-  .text {
-    display: block;
-    margin-top: 2px;
+  /* ---------- Nickname / welcome screen ---------- */
+  #welcome-banner{
+    text-align:center;
+    font-size:clamp(2rem, 8vw, 2.8rem);
+    font-weight:700;
+    letter-spacing:-0.5px;
+    margin-top:12px;
+    margin-bottom:6px;
+    background:linear-gradient(135deg, #fff 20%, var(--accent) 100%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    animation:fadeUp 0.7s ease-out;
   }
 
-  .avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    vertical-align: middle;
-    margin-right: 6px;
+  #welcome-sub{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:0.95rem;
+    margin-bottom:28px;
   }
 
-  #typing-indicator {
-    font-size: 0.8em;
-    color: #888;
-    padding-left: 12px;
-    margin-bottom: 8px;
+  @keyframes fadeUp{
+    from{ opacity:0; transform:translateY(14px); }
+    to{ opacity:1; transform:translateY(0); }
   }
 
-  #user-input {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    max-width: 600px;
-    margin: auto;
-    padding: 12px 10px;
-    background: #f9f9f9;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    z-index: 101;
+  .field-label{
+    font-size:0.85rem;
+    color:var(--text-dim);
+    margin-bottom:8px;
+    display:block;
   }
 
-  #user-input input {
-    flex: 1;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    padding: 12px;
-    font-size: 1em;
+  input[type="text"]{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:var(--radius-sm);
+    padding:14px 16px;
+    font-size:1rem;
+    width:100%;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  input[type="text"]::placeholder{ color:var(--text-faint); }
+  input[type="text"]:focus{
+    border-color:var(--accent);
+    background:var(--bg-elevated-2);
   }
 
-  #user-input button {
-    border-radius: 50%;
-    background: #1a73e8;
-    color: white;
-    padding: 12px;
-    width: 44px;
-    height: 44px;
-    font-size: 1.2em;
-    border: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .btn{
+    border:none;
+    border-radius:var(--radius-sm);
+    padding:14px 18px;
+    font-size:1rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+    width:100%;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn-primary{
+    background:var(--accent);
+    color:#fff;
+    margin-top:14px;
+  }
+  .btn-primary:hover{ background:var(--accent-hover); }
+  .btn-primary:disabled{
+    opacity:0.5;
+    cursor:not-allowed;
+    transform:none;
+  }
+
+  #map-wrap{
+    margin-top:22px;
+    border-radius:var(--radius-md);
+    overflow:hidden;
+    border:1px solid var(--border);
+    position:relative;
+  }
+  #map{ height:220px; background:var(--bg-elevated); }
+  #map-caption{
+    font-size:0.75rem;
+    color:var(--text-faint);
+    padding:8px 12px;
+    background:var(--bg-elevated);
+    border-top:1px solid var(--border-soft);
+  }
+
+  /* ---------- Main menu ---------- */
+  #main-menu{ display:none; }
+  #main-menu h2{
+    font-size:1.3rem;
+    margin:4px 0 4px;
+  }
+  #main-menu .menu-sub{
+    color:var(--text-dim);
+    font-size:0.9rem;
+    margin-bottom:22px;
+  }
+
+  .menu-btn{
+    width:100%;
+    text-align:left;
+    padding:18px;
+    margin:0 0 12px;
+    border-radius:var(--radius-md);
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    color:var(--text);
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:14px;
+    transition:border-color 0.15s ease, background 0.15s ease, transform 0.08s ease;
+  }
+  .menu-btn:hover{
+    border-color:var(--accent);
+    background:var(--bg-elevated-2);
+  }
+  .menu-btn:active{ transform:scale(0.99); }
+  .menu-btn .icon{
+    width:42px;height:42px;
+    border-radius:var(--radius-sm);
+    background:var(--accent-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.3rem;
+    flex-shrink:0;
+  }
+  .menu-btn .label{ font-weight:600; font-size:1rem; }
+  .menu-btn .desc{ font-size:0.8rem; color:var(--text-dim); margin-top:2px; }
+
+  /* ---------- Gender modal ---------- */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(5,6,9,0.6);
+    backdrop-filter:blur(2px);
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:200;
+    animation:fadeIn 0.15s ease-out;
+  }
+  @media (min-width:640px){
+    .modal-overlay{ align-items:center; }
+  }
+  @keyframes fadeIn{ from{opacity:0;} to{opacity:1;} }
+
+  .modal-card{
+    background:var(--bg-elevated);
+    border:1px solid var(--border);
+    border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+    width:100%;
+    max-width:480px;
+    padding:22px 20px calc(22px + var(--safe-bottom));
+    animation:slideUp 0.2s ease-out;
+  }
+  @media (min-width:640px){
+    .modal-card{ border-radius:var(--radius-lg); }
+  }
+  @keyframes slideUp{
+    from{ transform:translateY(24px); opacity:0; }
+    to{ transform:translateY(0); opacity:1; }
+  }
+  .modal-card h3{ margin:0 0 4px; font-size:1.1rem; }
+  .modal-card p{ margin:0 0 18px; color:var(--text-dim); font-size:0.88rem; }
+  .modal-options{ display:flex; flex-direction:column; gap:10px; }
+  .modal-option{
+    padding:14px 16px;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--border);
+    background:var(--bg-elevated-2);
+    color:var(--text);
+    cursor:pointer;
+    text-align:left;
+    font-size:0.95rem;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .modal-option:hover{ border-color:var(--accent); }
+  .modal-cancel{
+    margin-top:14px;
+    background:transparent;
+    border:none;
+    color:var(--text-dim);
+    width:100%;
+    padding:10px;
+    cursor:pointer;
+    font-size:0.9rem;
+  }
+  .modal-cancel:hover{ color:var(--text); }
+
+  /* ---------- Chat container ---------- */
+  #chat-container{
+    display:none;
+    flex-direction:column;
+    height:100dvh;
+    max-width:640px;
+    margin:auto;
+    width:100%;
+    background:var(--bg);
+  }
+
+  #partner-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:calc(12px + var(--safe-top)) 16px 12px;
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border-soft);
+    flex-shrink:0;
+  }
+
+  #partner-info{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:0.95rem;
+    font-weight:600;
+  }
+
+  #status-dot{
+    width:9px;height:9px;
+    border-radius:50%;
+    background:var(--text-faint);
+    flex-shrink:0;
+    transition:background 0.2s ease, box-shadow 0.2s ease;
+  }
+  #status-dot.connected{
+    background:var(--success);
+    box-shadow:0 0 0 3px rgba(59,165,92,0.18);
+  }
+  #status-dot.searching{
+    background:#f5b942;
+    box-shadow:0 0 0 3px rgba(245,185,66,0.18);
+    animation:pulse 1.2s ease-in-out infinite;
+  }
+  #status-dot.disconnected{
+    background:var(--danger);
+    box-shadow:0 0 0 3px rgba(237,66,69,0.18);
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.4; }
+  }
+
+  #partner-sub{
+    font-size:0.75rem;
+    color:var(--text-dim);
+    font-weight:400;
+  }
+
+  #home-btn{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    border-radius:var(--radius-sm);
+    padding:8px 12px;
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  #home-btn:hover{ color:var(--text); border-color:var(--accent); }
+
+  #chat-box{
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  #chat-box:empty::before,
+  .empty-state{
+    content:"";
+  }
+
+  .empty-state{
+    margin:auto;
+    text-align:center;
+    color:var(--text-faint);
+    font-size:0.9rem;
+    padding:40px 20px;
+  }
+
+  .system-msg{
+    align-self:center;
+    color:var(--text-faint);
+    font-size:0.78rem;
+    background:var(--bg-elevated);
+    border:1px solid var(--border-soft);
+    padding:6px 14px;
+    border-radius:100px;
+    margin:10px 0;
+  }
+  .system-msg.danger{ color:#f3a1a2; border-color:rgba(237,66,69,0.3); }
+
+  .message{
+    margin-bottom:10px;
+    padding:10px 14px;
+    border-radius:var(--radius-md);
+    max-width:78%;
+    word-wrap:break-word;
+    font-size:0.94rem;
+    line-height:1.4;
+    animation:msgIn 0.18s ease-out;
+    display:flex;
+    gap:8px;
+    align-items:flex-end;
+  }
+  @keyframes msgIn{
+    from{ opacity:0; transform:translateY(6px); }
+    to{ opacity:1; transform:translateY(0); }
+  }
+
+  .message.incoming{
+    background:var(--bg-elevated);
+    align-self:flex-start;
+    border-bottom-left-radius:4px;
+  }
+  .message.outgoing{
+    background:var(--accent);
+    color:#fff;
+    align-self:flex-end;
+    border-bottom-right-radius:4px;
+    flex-direction:row-reverse;
+  }
+
+  .message .avatar{
+    width:26px;height:26px;
+    border-radius:50%;
+    flex-shrink:0;
+    background:var(--bg-elevated-2);
+  }
+
+  .message .bubble-body{ min-width:0; }
+
+  .message .meta{
+    display:flex;
+    gap:8px;
+    align-items:baseline;
+    margin-bottom:2px;
+  }
+  .message .username{
+    font-weight:600;
+    font-size:0.78rem;
+    color:var(--accent);
+  }
+  .message.outgoing .username{ color:rgba(255,255,255,0.85); }
+  .message .timestamp{
+    font-size:0.68rem;
+    color:var(--text-faint);
+  }
+  .message.outgoing .timestamp{ color:rgba(255,255,255,0.65); }
+  .message .text{ display:block; white-space:pre-wrap; }
+
+  #typing-indicator{
+    min-height:22px;
+    font-size:0.78rem;
+    color:var(--text-dim);
+    padding:0 16px 4px;
+    flex-shrink:0;
+  }
+
+  #user-input{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 12px calc(10px + var(--safe-bottom));
+    background:var(--bg-elevated);
+    border-top:1px solid var(--border-soft);
+    flex-shrink:0;
+  }
+
+  #message-input{
+    flex:1;
+    border:1px solid var(--border);
+    border-radius:22px;
+    padding:12px 16px;
+    font-size:1rem;
+    background:var(--bg-elevated-2);
+    color:var(--text);
+  }
+  #message-input:focus{ border-color:var(--accent); }
+  #message-input:disabled{ opacity:0.5; }
+
+  .round-btn{
+    border-radius:50%;
+    width:44px;height:44px;
+    display:flex;align-items:center;justify-content:center;
+    border:none;
+    cursor:pointer;
+    font-size:1.15rem;
+    flex-shrink:0;
+    transition:background 0.15s ease, transform 0.08s ease, opacity 0.15s ease;
+  }
+  .round-btn:active{ transform:scale(0.94); }
+
+  #send-btn{ background:var(--accent); color:#fff; }
+  #send-btn:hover:not(:disabled){ background:var(--accent-hover); }
+  #send-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  #toggle-btn{ background:var(--bg-elevated-2); color:var(--text); border:1px solid var(--border); }
+  #toggle-btn:hover{ border-color:var(--accent); }
+
+  /* char counter */
+  #char-count{
+    font-size:0.68rem;
+    color:var(--text-faint);
+    align-self:center;
+    min-width:34px;
+    text-align:right;
+  }
+  #char-count.warn{ color:#f5b942; }
+  #char-count.max{ color:var(--danger); }
+
+  .sr-only{
+    position:absolute;
+    width:1px;height:1px;
+    padding:0;margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
   }
 </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ NICKNAME / WELCOME SCREEN ============ -->
+  <div id="nickname-prompt" class="screen">
+    <div id="welcome-banner">Chat With Strangers</div>
+    <p id="welcome-sub">No login. No signup. Just talk.</p>
+
+    <label class="field-label" for="nickname-input">Your nickname</label>
+    <input type="text" id="nickname-input" placeholder="e.g. Alex" maxlength="20" autocomplete="off" />
+    <button class="btn btn-primary" id="continue-btn" onclick="startApp()">Continue</button>
+
+    <div id="map-wrap">
+      <div id="map"><p class="sr-only">Loading map preview</p></div>
+      <div id="map-caption">Approximate location shown for fun — never used for matching</div>
+    </div>
+  </div>
+
+  <!-- ============ MAIN MENU ============ -->
+  <div id="main-menu" class="screen">
+    <h2 id="menu-greeting">Hey there 👋</h2>
+    <p class="menu-sub">Pick how you'd like to chat</p>
+
+    <button class="menu-btn" onclick="connectStranger()">
+      <span class="icon">🎲</span>
+      <span>
+        <span class="label">Connect with a Stranger</span>
+        <span class="desc">1-on-1 random match</span>
+      </span>
+    </button>
+
+    <button class="menu-btn" onclick="joinGroupChat()">
+      <span class="icon">👥</span>
+      <span>
+        <span class="label">Group Chat</span>
+        <span class="desc">Talk with everyone at once</span>
+      </span>
+    </button>
+
+    <button class="menu-btn" onclick="openGenderModal()">
+      <span class="icon">⚧</span>
+      <span>
+        <span class="label">Gender Preference Chat</span>
+        <span class="desc">Match with a preferred gender</span>
+      </span>
+    </button>
+  </div>
+
+  <!-- ============ GENDER MODAL (replaces prompt()) ============ -->
+  <div id="gender-modal-overlay" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="gender-modal-title">
+    <div class="modal-card">
+      <h3 id="gender-modal-title">Who would you like to chat with?</h3>
+      <p>We'll match you with someone who fits your preference.</p>
+      <div class="modal-options">
+        <button class="modal-option" data-gender="male">Male</button>
+        <button class="modal-option" data-gender="female">Female</button>
+        <button class="modal-option" data-gender="any">Anyone</button>
+      </div>
+      <button class="modal-cancel" onclick="closeGenderModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ============ CHAT CONTAINER ============ -->
+  <div id="chat-container">
+    <div id="partner-row">
+      <div id="partner-info">
+        <span id="status-dot" class="disconnected" aria-hidden="true"></span>
+        <span>
+          <span id="partner-name">Not connected</span><br/>
+          <span id="partner-sub"></span>
+        </span>
+      </div>
+      <button id="home-btn" onclick="goHome()">Menu</button>
+    </div>
+
+    <div id="chat-box" role="log" aria-live="polite" aria-relevant="additions"></div>
+
+    <div id="typing-indicator" aria-live="polite"></div>
+
+    <div id="user-input">
+      <button id="toggle-btn" class="round-btn" title="Next / Disconnect" aria-label="Find new partner or disconnect">🔁</button>
+      <input type="text" id="message-input" placeholder="Type a message…" maxlength="500" aria-label="Message" disabled />
+      <span id="char-count">0/500</span>
+      <button id="send-btn" class="round-btn" aria-label="Send message" disabled>➤</button>
+    </div>
+  </div>
+
+</div>
+
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyB2lhbK9zLBQx5Tl_8Skw_uit0zmPr3DpY",
-    authDomain: "chitchat-709cc.firebaseapp.com",
-    databaseURL: "https://chitchat-709cc-default-rtdb.firebaseio.com",
-    projectId: "chitchat-709cc",
-    storageBucket: "chitchat-709cc.appspot.com",
-    messagingSenderId: "122065028796",
-    appId: "1:122065028796:web:a5a47552d92ceb5bf232b9"
-  };
+/* =========================================================
+   FIREBASE CONFIG — unchanged from original file
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB2lhbK9zLBQx5Tl_8Skw_uit0zmPr3DpY",
+  authDomain: "chitchat-709cc.firebaseapp.com",
+  databaseURL: "https://chitchat-709cc-default-rtdb.firebaseio.com",
+  projectId: "chitchat-709cc",
+  storageBucket: "chitchat-709cc.appspot.com",
+  messagingSenderId: "122065028796",
+  appId: "1:122065028796:web:a5a47552d92ceb5bf232b9"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  let nickname = "Anonymous", avatarURL = "", currentRoom = null;
-  let messagesRef = null, typingRef = null;
-  let myId = null;
-  const messageKeys = new Set();
+/* =========================================================
+   STATE
+   ========================================================= */
+let nickname = "Anonymous";
+let avatarURL = "";
+let currentRoom = null;
+let messagesRef = null;
+let typingRef = null;
+let myId = null;
 
-  const chatBox = document.getElementById("chat-box");
-  const userInput = document.getElementById("message-input");
-  const sendBtn = document.getElementById("send-btn");
-  const typingIndicator = document.getElementById("typing-indicator");
-  const partnerInfo = document.getElementById("partner-info");
+// track live listener refs so we can always tear them down cleanly
+let activeQueueRef = null;      // strangerQueue or genderQueue ref currently being listened on
+let activeMyQueueRef = null;    // this session's own entry in that queue
+let matchmakingInFlight = false; // guards re-entrant toggle clicks during search
+let typingTimeoutId = null;      // fixes the stacking setTimeout bug
+const messageKeys = new Set();
 
-  // 🌍 Geolocation and map
-  if ("geolocation" in navigator) {
+const chatBox = document.getElementById("chat-box");
+const userInput = document.getElementById("message-input");
+const sendBtn = document.getElementById("send-btn");
+const toggleBtn = document.getElementById("toggle-btn");
+const typingIndicator = document.getElementById("typing-indicator");
+const partnerNameEl = document.getElementById("partner-name");
+const partnerSubEl = document.getElementById("partner-sub");
+const statusDot = document.getElementById("status-dot");
+const charCount = document.getElementById("char-count");
+
+let toggleState = 0; // 0 = idle/ready-to-connect, 1 = connected/searching
+
+/* =========================================================
+   GEOLOCATION MAP (cosmetic only — not used for matching)
+   ========================================================= */
+function initMap(){
+  if ("geolocation" in navigator){
     navigator.geolocation.getCurrentPosition(
       position => {
         const lat = position.coords.latitude;
         const lon = position.coords.longitude;
-        const map = L.map('map').setView([lat, lon], 10);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-        L.marker([lat, lon]).addTo(map)
-          .bindPopup(`You are here: [${lat.toFixed(2)}, ${lon.toFixed(2)}]`).openPopup();
+        renderMap(lat, lon, 10, `You are here: [${lat.toFixed(2)}, ${lon.toFixed(2)}]`);
       },
-      error => fallbackMap()
+      () => fallbackMap(),
+      { timeout: 6000 }
     );
   } else {
     fallbackMap();
   }
+}
 
-  function fallbackMap() {
-    const map = L.map('map').setView([20.5937, 78.9629], 4);
+function fallbackMap(){
+  renderMap(20.5937, 78.9629, 4, "Default location: India");
+}
+
+function renderMap(lat, lon, zoom, popupText){
+  try{
+    const map = L.map('map', { attributionControl:false }).setView([lat, lon], zoom);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    L.marker([20.5937, 78.9629]).addTo(map)
-      .bindPopup("Default location: India").openPopup();
+    L.marker([lat, lon]).addTo(map).bindPopup(popupText).openPopup();
+  }catch(e){
+    console.warn("Map failed to render:", e);
   }
+}
 
-  function startApp() {
-    const input = document.getElementById("nickname-input").value.trim();
-    if (input) nickname = input;
-    avatarURL = `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(nickname)}`;
-    document.getElementById("nickname-prompt").style.display = "none";
-    document.getElementById("main-menu").style.display = "block";
-    document.getElementById("map").remove();
-  }
-</script>
-<script>
-  function connectStranger() {
-    document.getElementById("main-menu").style.display = "none";
-    document.getElementById("chat-container").style.display = "flex";
-    partnerInfo.textContent = "Chatting with: Stranger";
-    sendBtn.disabled = false;
-    toggleState = 1;
-    findPartner();
-  }
+initMap();
 
-  function joinGroupChat() {
-    document.getElementById("main-menu").style.display = "none";
-    document.getElementById("chat-container").style.display = "flex";
-    partnerInfo.textContent = "Chatting with: Everyone";
-    sendBtn.disabled = false;
-    toggleState = 1;
-    startChatRoom("group_room", "Everyone");
-  }
+/* =========================================================
+   NICKNAME / START
+   ========================================================= */
+function startApp(){
+  const input = document.getElementById("nickname-input").value.trim();
+  if (input) nickname = sanitizeNickname(input);
+  avatarURL = `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(nickname)}`;
 
-  function genderChat() {
-    const gender = prompt("Enter preferred gender to chat with (male/female/any):").toLowerCase();
-    if (!["male", "female", "any"].includes(gender)) {
-      alert("Invalid gender. Please enter male, female, or any.");
-      return;
-    }
-    document.getElementById("main-menu").style.display = "none";
-    document.getElementById("chat-container").style.display = "flex";
-    partnerInfo.textContent = `Chatting with: ${gender}`;
-    sendBtn.disabled = false;
-    toggleState = 1;
+  document.getElementById("nickname-prompt").style.display = "none";
+  document.getElementById("main-menu").style.display = "flex";
+  document.getElementById("menu-greeting").textContent = `Hey, ${nickname} 👋`;
+}
+
+// basic client-side guard: strip characters that could look like HTML/script content
+// (messages are inserted via textContent everywhere, so this is defense-in-depth, not
+// the only protection)
+function sanitizeNickname(raw){
+  return raw.replace(/[<>`]/g, "").slice(0, 20) || "Anonymous";
+}
+
+document.getElementById("nickname-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") startApp();
+});
+
+/* =========================================================
+   MENU ACTIONS
+   ========================================================= */
+function connectStranger(){
+  enterChatUI("Stranger", "Searching…", "searching");
+  findPartner();
+}
+
+function joinGroupChat(){
+  enterChatUI("Everyone", "Group room", "connected");
+  startChatRoom("group_room", "Everyone");
+}
+
+function openGenderModal(){
+  document.getElementById("gender-modal-overlay").style.display = "flex";
+}
+function closeGenderModal(){
+  document.getElementById("gender-modal-overlay").style.display = "none";
+}
+document.querySelectorAll(".modal-option").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const gender = btn.dataset.gender;
+    closeGenderModal();
+    enterChatUI(`Looking for: ${gender}`, "Searching…", "searching");
     findGenderPartner(gender);
-  }
+  });
+});
+// allow overlay background tap to dismiss (but not the card itself)
+document.getElementById("gender-modal-overlay").addEventListener("click", e => {
+  if (e.target.id === "gender-modal-overlay") closeGenderModal();
+});
 
-  function findPartner() {
-    const queueRef = db.ref("strangerQueue");
-    myId = db.ref().push().key;
-    const myData = { id: myId, nickname, avatar: avatarURL };
-    const myQueueRef = queueRef.push(myData);
-    myQueueRef.onDisconnect().remove();
+function enterChatUI(partnerLabel, subLabel, status){
+  document.getElementById("main-menu").style.display = "none";
+  document.getElementById("chat-container").style.display = "flex";
+  setPartnerStatus(partnerLabel, subLabel, status);
+  toggleState = 1;
+}
 
-    queueRef.once("value", snapshot => {
-      const queue = snapshot.val();
-      for (let key in queue) {
-        const partner = queue[key];
-        if (partner.id !== myId && partner.nickname !== nickname) {
-          queueRef.child(key).remove();
-          myQueueRef.remove();
-          const ids = [myId, partner.id].sort();
-          const roomId = `private_${ids[0]}_${ids[1]}`;
-          startChatRoom(roomId, partner.nickname);
-          return;
-        }
+function goHome(){
+  teardownRoom();
+  teardownMatchmaking();
+  document.getElementById("chat-container").style.display = "none";
+  document.getElementById("main-menu").style.display = "flex";
+  toggleState = 0;
+  matchmakingInFlight = false;
+}
+
+function setPartnerStatus(name, sub, status){
+  partnerNameEl.textContent = name;
+  partnerSubEl.textContent = sub || "";
+  statusDot.className = status || "disconnected";
+}
+
+/* =========================================================
+   MATCHMAKING — same queues, same room-id scheme as before.
+   Fix: match is decided by unique `id`, never by nickname,
+   so two strangers with the same display name can still pair.
+   Fix: guards + full listener teardown to avoid duplicate
+   child_removed listeners stacking up on rapid reconnects.
+   ========================================================= */
+function findPartner(){
+  matchmakingInFlight = true;
+  sendBtn.disabled = true;
+  userInput.disabled = true;
+
+  const queueRef = db.ref("strangerQueue");
+  myId = db.ref().push().key;
+  const myData = { id: myId, nickname, avatar: avatarURL };
+  const myQueueRef = queueRef.push(myData);
+  myQueueRef.onDisconnect().remove();
+
+  activeQueueRef = queueRef;
+  activeMyQueueRef = myQueueRef;
+
+  queueRef.once("value", snapshot => {
+    if (!matchmakingInFlight) return; // user backed out while this was in flight
+    const queue = snapshot.val();
+    for (const key in queue){
+      const partner = queue[key];
+      if (partner.id !== myId){
+        queueRef.child(key).remove();
+        myQueueRef.remove();
+        const ids = [myId, partner.id].sort();
+        const roomId = `private_${ids[0]}_${ids[1]}`;
+        matchmakingInFlight = false;
+        startChatRoom(roomId, partner.nickname);
+        return;
       }
+    }
 
-      queueRef.on("child_removed", snap => {
-        const left = snap.val();
-        if (left && left.id !== myId && left.nickname !== nickname) {
-          const ids = [myId, left.id].sort();
-          const roomId = `private_${ids[0]}_${ids[1]}`;
-          queueRef.off();
-          myQueueRef.remove();
-          startChatRoom(roomId, left.nickname);
-        }
-      });
-    });
-  }
-
-  function findGenderPartner(preferredGender) {
-    const queueRef = db.ref("genderQueue");
-    myId = db.ref().push().key;
-    const myData = { id: myId, nickname, avatar: avatarURL, gender: preferredGender };
-    const myQueueRef = queueRef.push(myData);
-    myQueueRef.onDisconnect().remove();
-
-    queueRef.once("value", snapshot => {
-      const queue = snapshot.val();
-      for (let key in queue) {
-        const partner = queue[key];
-        if (
-          partner.id !== myId &&
-          partner.nickname !== nickname &&
-          (preferredGender === "any" || partner.gender === preferredGender)
-        ) {
-          queueRef.child(key).remove();
-          myQueueRef.remove();
-          const ids = [myId, partner.id].sort();
-          const roomId = `gender_${ids[0]}_${ids[1]}`;
-          startChatRoom(roomId, partner.nickname);
-          return;
-        }
+    queueRef.on("child_removed", snap => {
+      if (!matchmakingInFlight) return;
+      const left = snap.val();
+      if (left && left.id !== myId){
+        const ids = [myId, left.id].sort();
+        const roomId = `private_${ids[0]}_${ids[1]}`;
+        queueRef.off("child_removed");
+        myQueueRef.remove();
+        matchmakingInFlight = false;
+        startChatRoom(roomId, left.nickname);
       }
-
-      queueRef.on("child_removed", snap => {
-        const left = snap.val();
-        if (
-          left &&
-          left.id !== myId &&
-          left.nickname !== nickname &&
-          (preferredGender === "any" || left.gender === preferredGender)
-        ) {
-          const ids = [myId, left.id].sort();
-          const roomId = `gender_${ids[0]}_${ids[1]}`;
-          queueRef.off();
-          myQueueRef.remove();
-          startChatRoom(roomId, left.nickname);
-        }
-      });
     });
-  }
+  });
+}
 
-  function startChatRoom(roomId, partnerName) {
-    currentRoom = roomId;
-    messagesRef = db.ref(`rooms/${roomId}/messages`);
-    typingRef = db.ref(`rooms/${roomId}/typing`);
+function findGenderPartner(preferredGender){
+  matchmakingInFlight = true;
+  sendBtn.disabled = true;
+  userInput.disabled = true;
+
+  const queueRef = db.ref("genderQueue");
+  myId = db.ref().push().key;
+  const myData = { id: myId, nickname, avatar: avatarURL, gender: preferredGender };
+  const myQueueRef = queueRef.push(myData);
+  myQueueRef.onDisconnect().remove();
+
+  activeQueueRef = queueRef;
+  activeMyQueueRef = myQueueRef;
+
+  queueRef.once("value", snapshot => {
+    if (!matchmakingInFlight) return;
+    const queue = snapshot.val();
+    for (const key in queue){
+      const partner = queue[key];
+      if (partner.id !== myId && (preferredGender === "any" || partner.gender === preferredGender)){
+        queueRef.child(key).remove();
+        myQueueRef.remove();
+        const ids = [myId, partner.id].sort();
+        const roomId = `gender_${ids[0]}_${ids[1]}`;
+        matchmakingInFlight = false;
+        startChatRoom(roomId, partner.nickname);
+        return;
+      }
+    }
+
+    queueRef.on("child_removed", snap => {
+      if (!matchmakingInFlight) return;
+      const left = snap.val();
+      if (left && left.id !== myId && (preferredGender === "any" || left.gender === preferredGender)){
+        const ids = [myId, left.id].sort();
+        const roomId = `gender_${ids[0]}_${ids[1]}`;
+        queueRef.off("child_removed");
+        myQueueRef.remove();
+        matchmakingInFlight = false;
+        startChatRoom(roomId, left.nickname);
+      }
+    });
+  });
+}
+
+// remove any in-progress queue listener/entry (used on disconnect toggle or "Menu")
+function teardownMatchmaking(){
+  matchmakingInFlight = false;
+  if (activeQueueRef){
+    activeQueueRef.off("child_removed");
+    activeQueueRef = null;
+  }
+  if (activeMyQueueRef){
+    activeMyQueueRef.remove();
+    activeMyQueueRef = null;
+  }
+}
+
+/* =========================================================
+   ROOM / CHAT
+   Paths unchanged: rooms/{roomId}/messages, rooms/{roomId}/typing
+   ========================================================= */
+function startChatRoom(roomId, partnerName){
+  teardownRoom(); // clean up any previous room's listeners first
+
+  currentRoom = roomId;
+  messagesRef = db.ref(`rooms/${roomId}/messages`);
+  typingRef = db.ref(`rooms/${roomId}/typing`);
+
+  chatBox.innerHTML = "";
+  messageKeys.clear();
+
+  const isGroup = roomId === "group_room";
+  setPartnerStatus(partnerName, isGroup ? "Group room" : "Connected", "connected");
+
+  sendBtn.disabled = false;
+  userInput.disabled = false;
+  userInput.focus();
+
+  listenForMessages(isGroup);
+  listenForTyping();
+  announceSystem(isGroup ? "You joined the group room." : `You're now chatting with ${partnerName}.`);
+}
+
+function teardownRoom(){
+  if (messagesRef) messagesRef.off();
+  if (typingRef) typingRef.off();
+  messagesRef = null;
+  typingRef = null;
+  currentRoom = null;
+}
+
+function announceSystem(text, isDanger){
+  const div = document.createElement("div");
+  div.className = "system-msg" + (isDanger ? " danger" : "");
+  div.textContent = text;
+  chatBox.appendChild(div);
+  scrollToBottom();
+}
+
+/* =========================================================
+   TOGGLE BUTTON — next / disconnect
+   Fix: guarded against rapid re-entrant clicks while a
+   search is already in flight.
+   ========================================================= */
+toggleBtn.addEventListener("click", () => {
+  if (matchmakingInFlight) return; // ignore clicks mid-search
+
+  if (toggleState === 0){
     chatBox.innerHTML = "";
     messageKeys.clear();
-    partnerInfo.textContent = `Chatting with: ${partnerName}`;
-    sendBtn.disabled = false;
-    listenForMessages();
-    listenForTyping();
+    setPartnerStatus("Finding a stranger…", "Please wait", "searching");
+    sendBtn.disabled = true;
+    userInput.disabled = true;
+    findPartner();
+    toggleState = 1;
+  } else {
+    teardownRoom();
+    teardownMatchmaking();
+    chatBox.innerHTML = "";
+    messageKeys.clear();
+    setPartnerStatus("Disconnected", "Tap 🔁 to reconnect", "disconnected");
+    sendBtn.disabled = true;
+    userInput.disabled = true;
+    toggleState = 0;
   }
-</script>
-<script>
-  // 🔁 Toggle Button Logic
-  const toggleBtn = document.getElementById("toggle-btn");
-  let toggleState = 0; // 0 = ready to connect, 1 = connected
+});
 
-  toggleBtn.addEventListener("click", () => {
-    if (toggleState === 0) {
-      // Connect to new partner
-      chatBox.innerHTML = "";
-      messageKeys.clear();
-      partnerInfo.textContent = "Finding new partner...";
-      sendBtn.disabled = true;
-      findPartner();
-      toggleState = 1;
-    } else {
-      // Disconnect and stay idle
-      if (messagesRef) messagesRef.off();
-      if (typingRef) typingRef.off();
-      chatBox.innerHTML = "";
-      messageKeys.clear();
-      partnerInfo.textContent = "Disconnected. Tap 🔁 to reconnect.";
-      sendBtn.disabled = true;
-      toggleState = 0;
-    }
-  });
+/* =========================================================
+   SEND MESSAGE — same message shape as before
+   ========================================================= */
+function sendMessage(){
+  const text = userInput.value.trim();
+  if (!text || !messagesRef) return;
 
-  // ➤ Send Message
-  sendBtn.onclick = () => {
-    const text = userInput.value.trim();
-    if (!text || !messagesRef) return;
-    const timestamp = new Date().toLocaleTimeString('en-IN', { hour12: false });
-    const message = {
-      text,
-      timestamp,
-      user: nickname,
-      avatar: avatarURL,
-      reactions: {},
-      replyTo: null
-    };
-    messagesRef.push(message);
-    userInput.value = "";
-    typingRef.set(null);
+  const timestamp = new Date().toLocaleTimeString('en-IN', { hour12: false });
+  const message = {
+    text,
+    timestamp,
+    user: nickname,
+    avatar: avatarURL,
+    reactions: {},
+    replyTo: null
   };
+  messagesRef.push(message);
+  userInput.value = "";
+  updateCharCount();
+  clearTyping();
+}
 
-  // ✍️ Typing Indicator
-  userInput.addEventListener("input", () => {
-    if (typingRef) {
-      typingRef.set(nickname);
-      setTimeout(() => typingRef.set(null), 3000);
-    }
-  });
-
-  // 📥 Listen for Messages
-  function listenForMessages() {
-    if (!messagesRef) return;
-    messagesRef.off();
-    messagesRef.on("child_added", snapshot => {
-      const msg = snapshot.val();
-      const key = snapshot.key;
-      if (messageKeys.has(key)) return;
-      messageKeys.add(key);
-
-      const msgDiv = document.createElement("div");
-      msgDiv.className = "message";
-      msgDiv.classList.add(msg.user === nickname ? "outgoing" : "incoming");
-
-      const avatar = document.createElement("img");
-      avatar.src = msg.avatar || "";
-      avatar.className = "avatar";
-      msgDiv.appendChild(avatar);
-
-      const metaDiv = document.createElement("div");
-      metaDiv.className = "meta";
-
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "username";
-      nameSpan.textContent = msg.user || "Anonymous";
-
-      const timeSpan = document.createElement("span");
-      timeSpan.className = "timestamp";
-      timeSpan.textContent = msg.timestamp;
-
-      metaDiv.appendChild(nameSpan);
-      metaDiv.appendChild(timeSpan);
-      msgDiv.appendChild(metaDiv);
-
-      const textSpan = document.createElement("span");
-      textSpan.className = "text";
-      textSpan.textContent = msg.text;
-      msgDiv.appendChild(textSpan);
-
-      chatBox.appendChild(msgDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    });
+sendBtn.addEventListener("click", sendMessage);
+userInput.addEventListener("keydown", e => {
+  if (e.key === "Enter"){
+    e.preventDefault();
+    sendMessage();
   }
+});
 
-  // 👀 Listen for Typing
-  function listenForTyping() {
-    if (!typingRef) return;
-    typingRef.off();
-    typingRef.on("value", snapshot => {
-      const name = snapshot.val();
-      typingIndicator.textContent = name && name !== nickname ? `${name} is typing...` : "";
-    });
+/* =========================================================
+   TYPING INDICATOR
+   Fix: previous version created a new setTimeout on every
+   keystroke without clearing the last one, so timers stacked
+   and the indicator cleared unpredictably. Now a single
+   timer is tracked and reset each time.
+   ========================================================= */
+userInput.addEventListener("input", () => {
+  updateCharCount();
+  if (!typingRef) return;
+
+  typingRef.set(nickname);
+  if (typingTimeoutId) clearTimeout(typingTimeoutId);
+  typingTimeoutId = setTimeout(() => {
+    typingRef.set(null);
+    typingTimeoutId = null;
+  }, 3000);
+});
+
+function clearTyping(){
+  if (typingTimeoutId){
+    clearTimeout(typingTimeoutId);
+    typingTimeoutId = null;
   }
+  if (typingRef) typingRef.set(null);
+}
 
-  // 📱 Pull-to-Refresh for Mobile
-  let startY = 0;
-  let isRefreshing = false;
+function updateCharCount(){
+  const len = userInput.value.length;
+  charCount.textContent = `${len}/500`;
+  charCount.classList.toggle("warn", len > 400 && len <= 480);
+  charCount.classList.toggle("max", len > 480);
+}
 
-  document.addEventListener("touchstart", e => {
-    if (document.documentElement.scrollTop === 0) {
-      startY = e.touches[0].clientY;
+/* =========================================================
+   LISTEN FOR MESSAGES
+   Fix: group_room now limits initial load with limitToLast
+   instead of pulling the entire message history on every join.
+   Private/gender rooms are naturally short-lived and small,
+   so they keep full history for context.
+   ========================================================= */
+function listenForMessages(isGroup){
+  if (!messagesRef) return;
+  messagesRef.off();
+
+  const query = isGroup ? messagesRef.limitToLast(50) : messagesRef;
+
+  query.on("child_added", snapshot => {
+    const msg = snapshot.val();
+    const key = snapshot.key;
+    if (messageKeys.has(key)) return;
+    messageKeys.add(key);
+    renderMessage(msg);
+  });
+}
+
+function renderMessage(msg){
+  const isMine = msg.user === nickname;
+
+  const msgDiv = document.createElement("div");
+  msgDiv.className = "message " + (isMine ? "outgoing" : "incoming");
+
+  const avatar = document.createElement("img");
+  avatar.src = safeAvatarSrc(msg.avatar);
+  avatar.className = "avatar";
+  avatar.alt = "";
+  avatar.loading = "lazy";
+  msgDiv.appendChild(avatar);
+
+  const body = document.createElement("div");
+  body.className = "bubble-body";
+
+  const metaDiv = document.createElement("div");
+  metaDiv.className = "meta";
+
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "username";
+  nameSpan.textContent = msg.user || "Anonymous";
+
+  const timeSpan = document.createElement("span");
+  timeSpan.className = "timestamp";
+  timeSpan.textContent = msg.timestamp || "";
+
+  metaDiv.appendChild(nameSpan);
+  metaDiv.appendChild(timeSpan);
+  body.appendChild(metaDiv);
+
+  const textSpan = document.createElement("span");
+  textSpan.className = "text";
+  textSpan.textContent = msg.text; // textContent only — never innerHTML, avoids XSS via message text
+  body.appendChild(textSpan);
+
+  msgDiv.appendChild(body);
+  chatBox.appendChild(msgDiv);
+  scrollToBottom();
+}
+
+// only allow the Dicebear host we generate avatars from — defensive,
+// since avatar URLs come from other users' data in a shared DB node
+function safeAvatarSrc(url){
+  try{
+    const u = new URL(url, location.href);
+    if (u.hostname === "api.dicebear.com") return url;
+  }catch(e){ /* fall through to default */ }
+  return `https://api.dicebear.com/7.x/thumbs/svg?seed=anonymous`;
+}
+
+function scrollToBottom(){
+  requestAnimationFrame(() => {
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
+
+/* =========================================================
+   LISTEN FOR TYPING
+   ========================================================= */
+function listenForTyping(){
+  if (!typingRef) return;
+  typingRef.off();
+  typingRef.on("value", snapshot => {
+    const name = snapshot.val();
+    typingIndicator.textContent = (name && name !== nickname) ? `${name} is typing…` : "";
+  });
+}
+
+/* =========================================================
+   MOBILE KEYBOARD HANDLING
+   Keep the composer visible and the transcript scrolled to
+   bottom when the on-screen keyboard opens/closes.
+   ========================================================= */
+if (window.visualViewport){
+  window.visualViewport.addEventListener("resize", () => {
+    if (document.getElementById("chat-container").style.display === "flex"){
+      scrollToBottom();
     }
   });
+}
 
-  document.addEventListener("touchmove", e => {
-    const currentY = e.touches[0].clientY;
-    if (!isRefreshing && currentY - startY > 100) {
-      isRefreshing = true;
-      location.reload();
-    }
-  });
-
-  document.addEventListener("touchend", () => {
-    isRefreshing = false;
-  });
+/* =========================================================
+   CLEAN UP ON TAB CLOSE
+   (Firebase onDisconnect handles the DB side; this just
+   avoids leaving local intervals/listeners running.)
+   ========================================================= */
+window.addEventListener("beforeunload", () => {
+  teardownMatchmaking();
+  teardownRoom();
+});
 </script>
 </body>
 </html>
