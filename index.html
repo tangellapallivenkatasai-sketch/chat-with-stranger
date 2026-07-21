@@ -1,25 +1,22 @@
-
 <!DOCTYPE html>
-<html lang="en" aria-label="Redirect Page">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="index, follow" />
   <meta name="description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!" />
-  <title>Redirecting to Chat Mode...</title>
+  <meta name="theme-color" content="#07080d" />
+  <title>Chat With Strangers 💬 — Anonymous Chat, No Signup Required</title>
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="canonical" href="https://chatwithstranger.online/" />
-
   <!-- Primary Meta Tags -->
   <meta name="title" content="Chat With Strangers 💬" />
-
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://chatwithstranger.online/" />
   <meta property="og:title" content="Chat With Strangers 💬" />
   <meta property="og:description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!" />
   <meta property="og:image" content="https://chatwithstranger.online/preview.png" />
-
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:url" content="https://chatwithstranger.online/" />
@@ -27,41 +24,540 @@
   <meta property="twitter:description" content="Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting!" />
   <meta property="twitter:image" content="https://chatwithstranger.online/preview.png" />
 
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding-top: 100px;
-      background: #f4f4f4;
-    }
-    a {
-      color: #1a73e8;
-      font-weight: bold;
-      text-decoration: none;
-    }
-    .spinner {
-      margin: 20px auto;
-      width: 40px;
-      height: 40px;
-      border: 4px solid #ccc;
-      border-top: 4px solid #1a73e8;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <script>
-    setTimeout(() => {
-      window.location.replace("chat-mode.html");
-    }, 3000);
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Chat With Strangers",
+    "url": "https://chatwithstranger.online/",
+    "description": "Meet new people instantly and chat anonymously. No sign-up needed — just enter a nickname and start chatting."
+  }
   </script>
+
+  <style>
+    :root{
+      --bg:#07080d;
+      --bg-glow-a:rgba(99,102,241,0.16);
+      --bg-glow-b:rgba(168,85,247,0.12);
+      --surface:#111319;
+      --surface-2:#15171f;
+      --border:#22252f;
+      --border-soft:#1a1c24;
+      --text:#f2f3f6;
+      --text-dim:#9199ab;
+      --text-faint:#5b6172;
+      --blue:#5b6cf7;
+      --purple:#9b5cf6;
+      --pink:#ec4899;
+      --radius-sm:10px;
+      --radius-md:16px;
+      --radius-lg:24px;
+    }
+
+    *{ box-sizing:border-box; }
+    html{ scroll-behavior:smooth; }
+
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      text-rendering:optimizeLegibility;
+      overflow-x:hidden;
+    }
+
+    a{ color:inherit; text-decoration:none; }
+
+    ::selection{ background:rgba(91,108,247,0.3); }
+
+    a:focus-visible,
+    button:focus-visible,
+    [tabindex]:focus-visible{
+      outline:2px solid var(--blue);
+      outline-offset:3px;
+      border-radius:6px;
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      html{ scroll-behavior:auto; }
+      *, *::before, *::after{
+        animation-duration:0.001ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:0.001ms !important;
+      }
+    }
+
+    /* ---------- skip link (keyboard accessibility) ---------- */
+    .skip-link{
+      position:absolute;
+      left:16px;
+      top:-60px;
+      z-index:100;
+      background:var(--surface);
+      color:var(--text);
+      border:1px solid var(--border);
+      padding:10px 16px;
+      border-radius:10px;
+      font-size:0.9rem;
+      font-weight:600;
+      transition:top 0.15s ease;
+    }
+    .skip-link:focus{ top:16px; }
+
+    /* ---------- visually hidden (screen-reader only) ---------- */
+    .sr-only{
+      position:absolute;
+      width:1px; height:1px;
+      padding:0; margin:-1px;
+      overflow:hidden;
+      clip:rect(0,0,0,0);
+      white-space:nowrap;
+      border:0;
+    }
+
+    /* ---------- ambient background glow ---------- */
+    .bg-glow{
+      position:fixed;
+      inset:0;
+      z-index:-1;
+      background:
+        radial-gradient(680px circle at 50% -10%, var(--bg-glow-a), transparent 60%),
+        radial-gradient(600px circle at 85% 20%, var(--bg-glow-b), transparent 55%);
+      pointer-events:none;
+    }
+
+    .container{
+      max-width:1120px;
+      margin:0 auto;
+      padding:0 24px;
+    }
+
+    /* ---------- navbar ---------- */
+    header{
+      position:sticky;
+      top:0;
+      z-index:50;
+      background:rgba(7,8,13,0.72);
+      backdrop-filter:blur(14px);
+      -webkit-backdrop-filter:blur(14px);
+      border-bottom:1px solid var(--border-soft);
+    }
+
+    .nav-inner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:16px 24px;
+      max-width:1120px;
+      margin:0 auto;
+      gap:16px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:700;
+      font-size:1.05rem;
+      letter-spacing:-0.2px;
+      flex-shrink:0;
+    }
+
+    .brand .accent{
+      background:linear-gradient(135deg, var(--blue), var(--purple));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .brand-icon{
+      width:32px;
+      height:32px;
+      border-radius:9px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(135deg, var(--blue), var(--purple));
+      flex-shrink:0;
+    }
+    .brand-icon svg{ width:16px; height:16px; display:block; }
+
+    .nav-links{
+      display:flex;
+      align-items:center;
+      gap:32px;
+      font-size:0.92rem;
+      color:var(--text-dim);
+      list-style:none;
+      margin:0;
+      padding:0;
+    }
+    .nav-links a{
+      position:relative;
+      padding:4px 0;
+      transition:color 0.15s ease;
+    }
+    .nav-links a:hover{ color:var(--text); }
+    .nav-links a[aria-current="page"]{ color:var(--text); }
+    .nav-links a[aria-current="page"]::after{
+      content:"";
+      position:absolute;
+      left:0; right:0; bottom:-2px;
+      height:2px;
+      border-radius:2px;
+      background:linear-gradient(90deg, var(--blue), var(--purple));
+    }
+
+    .nav-cta{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 18px;
+      border-radius:10px;
+      font-weight:600;
+      font-size:0.9rem;
+      background:linear-gradient(135deg, var(--blue), var(--purple));
+      color:#fff;
+      transition:filter 0.15s ease, transform 0.08s ease;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+    .nav-cta:hover{ filter:brightness(1.1); }
+    .nav-cta:active{ transform:scale(0.97); }
+
+    .mobile-hide{ display:flex; }
+    @media (max-width: 720px){
+      .mobile-hide{ display:none; }
+    }
+
+    /* ---------- hero ---------- */
+    .hero{
+      padding:96px 24px 64px;
+      text-align:center;
+      max-width:760px;
+      margin:0 auto;
+    }
+
+    .hero-icon{
+      width:64px;
+      height:64px;
+      margin:0 auto 28px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--surface);
+      border:1px solid var(--border);
+      box-shadow:0 0 40px rgba(99,102,241,0.25);
+      animation:fadeUp 0.6s ease-out both;
+    }
+    .hero-icon svg{ width:30px; height:30px; display:block; }
+
+    .hero h1{
+      font-size:clamp(2.4rem, 6vw, 3.6rem);
+      font-weight:800;
+      letter-spacing:-1.5px;
+      line-height:1.08;
+      margin:0 0 20px;
+      animation:fadeUp 0.6s 0.05s ease-out both;
+    }
+    .hero h1 .accent{
+      background:linear-gradient(135deg, var(--blue), var(--purple) 60%, var(--pink));
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    .hero p.sub{
+      font-size:clamp(1rem, 2vw, 1.15rem);
+      color:var(--text-dim);
+      line-height:1.6;
+      margin:0 0 36px;
+      animation:fadeUp 0.6s 0.1s ease-out both;
+    }
+
+    .cta-primary{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:17px 34px;
+      border-radius:14px;
+      font-weight:700;
+      font-size:1.05rem;
+      color:#fff;
+      background:linear-gradient(135deg, var(--blue), var(--purple));
+      box-shadow:0 0 0 1px rgba(255,255,255,0.06) inset, 0 12px 32px rgba(91,108,247,0.35);
+      transition:transform 0.12s ease, box-shadow 0.2s ease, filter 0.15s ease;
+      animation:fadeUp 0.6s 0.15s ease-out both;
+    }
+    .cta-primary:hover{
+      transform:translateY(-2px);
+      box-shadow:0 0 0 1px rgba(255,255,255,0.08) inset, 0 16px 40px rgba(91,108,247,0.45);
+      filter:brightness(1.05);
+    }
+    .cta-primary:active{ transform:translateY(0) scale(0.98); }
+    .cta-primary svg{ width:20px; height:20px; display:block; }
+
+    .trust-row{
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:center;
+      gap:10px 22px;
+      margin-top:32px;
+      font-size:0.88rem;
+      color:var(--text-dim);
+      animation:fadeUp 0.6s 0.2s ease-out both;
+    }
+    .trust-item{
+      display:inline-flex;
+      align-items:center;
+      gap:7px;
+    }
+    .trust-item svg{ width:16px; height:16px; flex-shrink:0; display:block; }
+    .trust-dot{
+      width:3px; height:3px;
+      border-radius:50%;
+      background:var(--text-faint);
+    }
+    @media (max-width:520px){
+      .trust-dot{ display:none; }
+    }
+
+    @keyframes fadeUp{
+      from{ opacity:0; transform:translateY(14px); }
+      to{ opacity:1; transform:translateY(0); }
+    }
+
+    /* ---------- features ---------- */
+    .features{
+      padding:40px 24px 100px;
+    }
+
+    .feature-grid{
+      max-width:1120px;
+      margin:0 auto;
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:18px;
+      list-style:none;
+      padding:0;
+    }
+    @media (max-width:860px){
+      .feature-grid{ grid-template-columns:1fr; }
+    }
+
+    .feature-card{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:var(--radius-lg);
+      padding:34px 28px;
+      transition:border-color 0.2s ease, transform 0.15s ease, background 0.2s ease;
+      position:relative;
+    }
+    .feature-card:hover{
+      border-color:rgba(91,108,247,0.4);
+      transform:translateY(-3px);
+      background:var(--surface-2);
+    }
+
+    .feature-icon{
+      width:52px;
+      height:52px;
+      border-radius:14px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin-bottom:20px;
+    }
+    .feature-icon svg{ width:24px; height:24px; display:block; }
+    .icon-random{ background:rgba(91,108,247,0.14); }
+    .icon-group{ background:rgba(59,165,255,0.14); }
+    .icon-gender{ background:rgba(236,72,153,0.14); }
+
+    .feature-card h3{
+      font-size:1.15rem;
+      font-weight:700;
+      margin:0 0 10px;
+      letter-spacing:-0.2px;
+    }
+    .feature-card p{
+      font-size:0.92rem;
+      color:var(--text-dim);
+      line-height:1.55;
+      margin:0;
+    }
+
+    /* ---------- footer ---------- */
+    footer{
+      border-top:1px solid var(--border-soft);
+      padding:36px 24px calc(36px + env(safe-area-inset-bottom, 0px));
+    }
+    .footer-inner{
+      max-width:1120px;
+      margin:0 auto;
+      display:flex;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+      gap:18px;
+    }
+    .footer-links{
+      display:flex;
+      gap:22px;
+      font-size:0.88rem;
+      color:var(--text-dim);
+      list-style:none;
+      margin:0;
+      padding:0;
+    }
+    .footer-links a:hover{ color:var(--text); }
+    .footer-copy{
+      font-size:0.82rem;
+      color:var(--text-faint);
+    }
+    .footer-brand{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:600;
+      font-size:0.92rem;
+      color:var(--text-dim);
+    }
+    .footer-brand .brand-icon{ width:24px; height:24px; border-radius:7px; }
+    .footer-brand .brand-icon svg{ width:12px; height:12px; }
+  </style>
 </head>
 <body>
-  <h2>Redirecting you to Chat Mode...</h2>
-  <p>If you're not redirected automatically, <a href="chat-mode.html">click here</a>.</p>
-  <div class="spinner"></div>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header>
+    <nav class="nav-inner" aria-label="Primary">
+      <a class="brand" href="#top" aria-label="Chat With Strangers — home">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        Chat With <span class="accent">Strangers</span>
+      </a>
+      <ul class="nav-links mobile-hide">
+        <li><a href="#top" aria-current="page">Home</a></li>
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <a class="nav-cta" href="chat-mode.html">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+        Start Chat
+      </a>
+    </nav>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" id="top" aria-labelledby="hero-heading">
+      <div class="hero-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 4h16v11H8l-4 4V4z" stroke="url(#g1)" stroke-width="2" stroke-linejoin="round"/>
+          <defs><linearGradient id="g1" x1="4" y1="4" x2="20" y2="19"><stop stop-color="#5b6cf7"/><stop offset="1" stop-color="#9b5cf6"/></linearGradient></defs>
+        </svg>
+      </div>
+
+      <h1 id="hero-heading">Chat With <span class="accent">Strangers</span></h1>
+      <p class="sub">Meet new people instantly.<br>No signup. No login. 100% anonymous.</p>
+
+      <a class="cta-primary" href="chat-mode.html">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+        Start Chat Now
+      </a>
+
+      <ul class="trust-row" aria-label="Key benefits">
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3z" stroke="#5b6cf7" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          100% Anonymous
+        </li>
+        <li class="trust-dot" aria-hidden="true"></li>
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" stroke="#5b6cf7" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          Instant Matching
+        </li>
+        <li class="trust-dot" aria-hidden="true"></li>
+        <li class="trust-item">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 20s-7-4.5-9.5-9A5.5 5.5 0 0112 6a5.5 5.5 0 019.5 5c-2.5 4.5-9.5 9-9.5 9z" stroke="#ec4899" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          Free Forever
+        </li>
+      </ul>
+    </section>
+
+    <section class="features" aria-labelledby="features-heading">
+      <h2 id="features-heading" class="sr-only">Ways to chat</h2>
+      <ul class="feature-grid">
+        <li class="feature-card">
+          <div class="feature-icon icon-random" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="4" width="16" height="16" rx="4" stroke="#5b6cf7" stroke-width="1.8"/>
+              <circle cx="9" cy="9" r="1.3" fill="#5b6cf7"/>
+              <circle cx="15" cy="9" r="1.3" fill="#5b6cf7"/>
+              <circle cx="9" cy="15" r="1.3" fill="#5b6cf7"/>
+              <circle cx="15" cy="15" r="1.3" fill="#5b6cf7"/>
+              <circle cx="12" cy="12" r="1.3" fill="#5b6cf7"/>
+            </svg>
+          </div>
+          <h3>Random Chat</h3>
+          <p>One-on-one conversations with a random stranger, matched instantly.</p>
+        </li>
+
+        <li class="feature-card">
+          <div class="feature-icon icon-group" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="9" r="3" stroke="#3ba5ff" stroke-width="1.8"/>
+              <circle cx="17" cy="10" r="2.4" stroke="#3ba5ff" stroke-width="1.8"/>
+              <path d="M3.5 19c.5-3 2.7-5 5.5-5s5 2 5.5 5" stroke="#3ba5ff" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M14.5 19c.3-2 1.8-3.6 3.5-3.9" stroke="#3ba5ff" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <h3>Group Chat</h3>
+          <p>Join an open room and talk with everyone at the same time.</p>
+        </li>
+
+        <li class="feature-card">
+          <div class="feature-icon icon-gender" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="9" cy="14" r="4.2" stroke="#ec4899" stroke-width="1.8"/>
+              <path d="M9 9.8V4m0 0h-2.5M9 4h2.5" stroke="#ec4899" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="16" cy="8" r="3.4" stroke="#ec4899" stroke-width="1.8"/>
+              <path d="M18.4 5.6L21 3m0 0h-3m3 0v3" stroke="#ec4899" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>Gender Chat</h3>
+          <p>Pick who you'd like to talk to and get matched to fit.</p>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+        </span>
+        Chat With Strangers
+      </div>
+      <ul class="footer-links">
+        <li><a href="privacy.html">Privacy</a></li>
+        <li><a href="terms.html">Terms</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+      <p class="footer-copy">© 2026 Chat With Strangers. All rights reserved.</p>
+    </div>
+  </footer>
 </body>
 </html>
