@@ -828,6 +828,32 @@ const charCount = document.getElementById("char-count");
 
 let toggleState = 0; // 0 = idle/ready-to-connect, 1 = connected/searching
 
+// -- admin-panel support state (Phase 1) --
+let sessionId = null;        // stable per-session key for presence/activity, separate from matchmaking's myId
+let presenceRef = null;
+let heartbeatIntervalId = null;
+let adminEndRef = null;      // listens for an admin-triggered force-disconnect on the current room
+
+/* =========================================================
+   PRESENCE & ACTIVITY LOGGING (Phase 1 — admin panel support)
+   New nodes only: presence/{sessionId} and activity/{pushId}.
+   Nothing here reads or changes strangerQueue, genderQueue,
+   or any room's messages/typing subtree.
+   ========================================================= */
+function updatePresence(fields){
+  if (!presenceRef) return;
+  presenceRef.update(Object.assign({ lastActive: firebase.database.ServerValue.TIMESTAMP }, fields));
+}
+
+function logActivity(type, extra){
+  db.ref("activity").push(Object.assign({
+    type,
+    nickname,
+    sessionId,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }, extra || {}));
+}
+
 /* =========================================================
    ONBOARDING — live identity preview + shuffle
    Replaces the old geolocation map: the map was cosmetic
@@ -903,6 +929,23 @@ function startApp(){
   if (input) nickname = sanitizeNickname(input);
   avatarURL = dicebearURL(nickname);
 
+  // -- admin-panel support: create this session's presence record --
+  sessionId = db.ref().push().key;
+  presenceRef = db.ref(`presence/${sessionId}`);
+  presenceRef.set({
+    id: sessionId,
+    nickname,
+    avatar: avatarURL,
+    status: "idle",
+    roomId: null,
+    joinTime: firebase.database.ServerValue.TIMESTAMP,
+    lastActive: firebase.database.ServerValue.TIMESTAMP
+  });
+  presenceRef.onDisconnect().remove();
+  if (heartbeatIntervalId) clearInterval(heartbeatIntervalId);
+  heartbeatIntervalId = setInterval(() => updatePresence({}), 25000);
+  logActivity("joined");
+
   document.getElementById("nickname-prompt").style.display = "none";
   document.getElementById("main-menu").style.display = "flex";
   document.getElementById("menu-greeting").textContent = `Hey, ${nickname} 👋`;
@@ -923,11 +966,14 @@ nicknameInput.addEventListener("keydown", e => {
    MENU ACTIONS
    ========================================================= */
 function connectStranger(){
+  updatePresence({ status: "searching", roomId: null });
+  logActivity("queue_enter");
   enterChatUI("Stranger", "Searching…", "searching");
   findPartner();
 }
 
 function joinGroupChat(){
+  updatePresence({ status: "group", roomId: "group_room" });
   enterChatUI("Everyone", "Group room", "connected");
   startChatRoom("group_room", "Everyone");
 }
@@ -942,6 +988,8 @@ document.querySelectorAll(".modal-option").forEach(btn => {
   btn.addEventListener("click", () => {
     const gender = btn.dataset.gender;
     closeGenderModal();
+    updatePresence({ status: "searching", roomId: null });
+    logActivity("queue_enter");
     enterChatUI(`Looking for: ${gender}`, "Searching…", "searching");
     findGenderPartner(gender);
   });
@@ -961,6 +1009,8 @@ function enterChatUI(partnerLabel, subLabel, status){
 function goHome(){
   teardownRoom();
   teardownMatchmaking();
+  updatePresence({ status: "idle", roomId: null });
+  logActivity("disconnected");
   document.getElementById("chat-container").style.display = "none";
   document.getElementById("main-menu").style.display = "flex";
   toggleState = 0;
@@ -987,7 +1037,7 @@ function findPartner(){
 
   const queueRef = db.ref("strangerQueue");
   myId = db.ref().push().key;
-  const myData = { id: myId, nickname, avatar: avatarURL };
+  const myData = { id: myId, nickname, avatar: avatarURL, createdAt: firebase.database.ServerValue.TIMESTAMP };
   const myQueueRef = queueRef.push(myData);
   myQueueRef.onDisconnect().remove();
 
@@ -1005,7 +1055,7 @@ function findPartner(){
         const ids = [myId, partner.id].sort();
         const roomId = `private_${ids[0]}_${ids[1]}`;
         matchmakingInFlight = false;
-        startChatRoom(roomId, partner.nickname);
+        startChatRoom(roomId, partner.nickname, partner.id);
         return;
       }
     }
@@ -1019,7 +1069,7 @@ function findPartner(){
         queueRef.off("child_removed");
         myQueueRef.remove();
         matchmakingInFlight = false;
-        startChatRoom(roomId, left.nickname);
+        startChatRoom(roomId, left.nickname, left.id);
       }
     });
   });
@@ -1032,7 +1082,7 @@ function findGenderPartner(preferredGender){
 
   const queueRef = db.ref("genderQueue");
   myId = db.ref().push().key;
-  const myData = { id: myId, nickname, avatar: avatarURL, gender: preferredGender };
+  const myData = { id: myId, nickname, avatar: avatarURL, gender: preferredGender, createdAt: firebase.database.ServerValue.TIMESTAMP };
   const myQueueRef = queueRef.push(myData);
   myQueueRef.onDisconnect().remove();
 
@@ -1050,7 +1100,7 @@ function findGenderPartner(preferredGender){
         const ids = [myId, partner.id].sort();
         const roomId = `gender_${ids[0]}_${ids[1]}`;
         matchmakingInFlight = false;
-        startChatRoom(roomId, partner.nickname);
+        startChatRoom(roomId, partner.nickname, partner.id);
         return;
       }
     }
@@ -1064,7 +1114,7 @@ function findGenderPartner(preferredGender){
         queueRef.off("child_removed");
         myQueueRef.remove();
         matchmakingInFlight = false;
-        startChatRoom(roomId, left.nickname);
+        startChatRoom(roomId, left.nickname, left.id);
       }
     });
   });
@@ -1080,6 +1130,7 @@ function teardownMatchmaking(){
   if (activeMyQueueRef){
     activeMyQueueRef.remove();
     activeMyQueueRef = null;
+    logActivity("queue_left");
   }
 }
 
@@ -1087,7 +1138,7 @@ function teardownMatchmaking(){
    ROOM / CHAT
    Paths unchanged: rooms/{roomId}/messages, rooms/{roomId}/typing
    ========================================================= */
-function startChatRoom(roomId, partnerName){
+function startChatRoom(roomId, partnerName, partnerId = null){
   teardownRoom(); // clean up any previous room's listeners first
 
   currentRoom = roomId;
@@ -1107,11 +1158,58 @@ function startChatRoom(roomId, partnerName){
   listenForMessages(isGroup);
   listenForTyping();
   announceSystem(isGroup ? "You joined the group room." : `You're now chatting with ${partnerName}.`);
+
+  // -- admin-panel support: room metadata + presence (private/gender rooms only) --
+  if (!isGroup){
+    updatePresence({ status: "chatting", roomId });
+    logActivity("matched", { roomId });
+
+    const metaRef = db.ref(`rooms/${roomId}/meta`);
+    metaRef.once("value", snap => {
+      if (snap.exists()){
+        // the other participant already created it — just make sure our own entry is present
+        metaRef.child(`participants/${myId}`).update({ nickname });
+      } else {
+        const participants = {};
+        participants[myId] = { nickname };
+        if (partnerId) participants[partnerId] = { nickname: partnerName };
+        metaRef.set({
+          type: roomId.startsWith("gender_") ? "gender" : "private",
+          participants,
+          startTime: firebase.database.ServerValue.TIMESTAMP,
+          status: "active"
+        });
+      }
+    });
+
+    // let an admin end this room remotely (Disconnect Room action, Phase 2)
+    adminEndRef = db.ref(`rooms/${roomId}/meta/status`);
+    adminEndRef.on("value", statusSnap => {
+      if (statusSnap.val() === "ended_by_admin" && currentRoom === roomId){
+        announceSystem("This chat was ended by an administrator.", true);
+        goHome();
+      }
+    });
+  }
 }
 
 function teardownRoom(){
   if (messagesRef) messagesRef.off();
   if (typingRef) typingRef.off();
+
+  // -- admin-panel support: close out room metadata + detach admin listener --
+  if (adminEndRef){
+    adminEndRef.off();
+    adminEndRef = null;
+  }
+  if (currentRoom && currentRoom !== "group_room"){
+    db.ref(`rooms/${currentRoom}/meta`).update({
+      status: "ended",
+      endedAt: firebase.database.ServerValue.TIMESTAMP
+    });
+    logActivity("room_ended", { roomId: currentRoom });
+  }
+
   messagesRef = null;
   typingRef = null;
   currentRoom = null;
@@ -1144,6 +1242,8 @@ toggleBtn.addEventListener("click", () => {
   } else {
     teardownRoom();
     teardownMatchmaking();
+    updatePresence({ status: "idle", roomId: null });
+    logActivity("disconnected");
     chatBox.innerHTML = "";
     messageKeys.clear();
     setPartnerStatus("Disconnected", "Tap 🔁 to reconnect", "disconnected");
@@ -1170,6 +1270,7 @@ function sendMessage(){
     replyTo: null
   };
   messagesRef.push(message);
+  updatePresence({});
   userInput.value = "";
   updateCharCount();
   clearTyping();
@@ -1329,6 +1430,9 @@ if (window.visualViewport){
 window.addEventListener("beforeunload", () => {
   teardownMatchmaking();
   teardownRoom();
+  // presence removal itself is handled server-side by presenceRef.onDisconnect(),
+  // which is reliable even if this handler doesn't finish in time
+  if (heartbeatIntervalId) clearInterval(heartbeatIntervalId);
 });
 </script>
 </body>
