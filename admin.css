@@ -1,0 +1,226 @@
+:root{
+  --bg:#07080d;
+  --surface:rgba(17,19,25,0.7);
+  --surface-solid:#111319;
+  --border:#22252f;
+  --border-soft:#1a1c24;
+  --text:#f2f3f6;
+  --text-dim:#9199ab;
+  --text-faint:#5b6172;
+  --blue:#5b6cf7;
+  --purple:#9b5cf6;
+  --pink:#ec4899;
+  --danger:#ed4245;
+  --radius-md:16px;
+  --radius-lg:24px;
+}
+
+*{ box-sizing:border-box; }
+
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+
+button{ font-family:inherit; }
+
+button:focus-visible{
+  outline:2px solid var(--blue);
+  outline-offset:2px;
+}
+
+/* ---------- shared screen shell ---------- */
+.admin-screen{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  padding:24px;
+  text-align:center;
+}
+
+.admin-glow{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  background:
+    radial-gradient(680px circle at 50% -10%, rgba(99,102,241,0.16), transparent 60%),
+    radial-gradient(600px circle at 85% 20%, rgba(168,85,247,0.12), transparent 55%);
+  pointer-events:none;
+}
+.admin-glow-danger{
+  background:
+    radial-gradient(680px circle at 50% -10%, rgba(237,66,69,0.14), transparent 60%),
+    radial-gradient(600px circle at 85% 20%, rgba(168,85,247,0.08), transparent 55%);
+}
+
+/* ---------- glass card ---------- */
+.admin-card{
+  width:100%;
+  max-width:380px;
+  background:var(--surface);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:40px 32px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4);
+}
+
+.brand-icon{
+  width:48px;height:48px;
+  margin:0 auto 20px;
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg, var(--blue), var(--purple));
+}
+.brand-icon svg{ width:22px;height:22px; }
+
+.admin-card h1{
+  font-size:1.4rem;
+  font-weight:800;
+  letter-spacing:-0.4px;
+  margin:0 0 8px;
+}
+.admin-card .code-403{
+  font-size:3.2rem;
+  font-weight:800;
+  letter-spacing:-2px;
+  background:linear-gradient(135deg, var(--danger), var(--purple));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+  margin-bottom:4px;
+}
+
+.admin-sub{
+  color:var(--text-dim);
+  font-size:0.9rem;
+  line-height:1.5;
+  margin:0 0 28px;
+}
+
+/* ---------- buttons ---------- */
+.btn-google{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  padding:14px 18px;
+  border-radius:12px;
+  border:1px solid var(--border);
+  background:#fff;
+  color:#1f1f1f;
+  font-size:0.95rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform 0.08s ease, box-shadow 0.15s ease;
+}
+.btn-google:hover{ box-shadow:0 8px 24px rgba(255,255,255,0.12); }
+.btn-google:active{ transform:scale(0.98); }
+
+.btn-secondary{
+  padding:12px 20px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--surface-solid);
+  color:var(--text-dim);
+  font-size:0.9rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:border-color 0.15s ease, color 0.15s ease;
+}
+.btn-secondary:hover{ border-color:var(--blue); color:var(--text); }
+.btn-small{ padding:8px 14px; font-size:0.82rem; }
+
+.admin-error{
+  margin-top:16px;
+  color:#f3a1a2;
+  font-size:0.82rem;
+}
+
+/* ---------- spinner ---------- */
+.spinner{
+  width:32px;height:32px;
+  border-radius:50%;
+  border:3px solid var(--border);
+  border-top-color:var(--blue);
+  animation:spin 0.8s linear infinite;
+  margin-bottom:16px;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.admin-loading-text{ color:var(--text-dim); font-size:0.9rem; }
+
+@media (prefers-reduced-motion: reduce){
+  .spinner{ animation-duration:2s; }
+}
+
+/* ---------- dashboard shell (Phase 2 builds inside #dashboard-root) ---------- */
+.admin-dashboard-shell{
+  min-height:100vh;
+  display:block;
+  padding:0;
+}
+
+.admin-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 28px;
+  background:rgba(17,19,25,0.72);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border-soft);
+  position:sticky;
+  top:0;
+  z-index:20;
+}
+
+.admin-topbar .brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:700;
+  font-size:1rem;
+}
+.admin-topbar .brand-icon{ width:30px;height:30px;margin:0;border-radius:8px; }
+.admin-topbar .brand-icon svg{ width:14px;height:14px; }
+
+.admin-badge{
+  font-size:0.68rem;
+  font-weight:700;
+  color:var(--blue);
+  background:rgba(91,108,247,0.14);
+  border:1px solid rgba(91,108,247,0.3);
+  padding:2px 8px;
+  border-radius:100px;
+  margin-left:4px;
+}
+
+.admin-account{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  font-size:0.85rem;
+  color:var(--text-dim);
+}
+
+.dashboard-root{
+  max-width:1280px;
+  margin:0 auto;
+  padding:32px 28px 60px;
+}
+
+.admin-placeholder{
+  color:var(--text-faint);
+  font-size:0.9rem;
+  text-align:center;
+  padding:60px 20px;
+}

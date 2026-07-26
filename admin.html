@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Admin — Chat With Strangers</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<link rel="icon" href="/favicon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+
+  <!-- ============ LOADING (initial auth check) ============ -->
+  <div id="admin-loading" class="admin-screen">
+    <div class="admin-glow" aria-hidden="true"></div>
+    <div class="spinner" aria-hidden="true"></div>
+    <p class="admin-loading-text">Checking access…</p>
+  </div>
+
+  <!-- ============ LOGIN (signed out) ============ -->
+  <div id="admin-login" class="admin-screen" style="display:none;">
+    <div class="admin-glow" aria-hidden="true"></div>
+    <div class="admin-card">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+      </div>
+      <h1>Admin Access</h1>
+      <p class="admin-sub">Sign in with the authorized Google account to continue.</p>
+      <button id="google-signin-btn" class="btn-google">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.48a5.55 5.55 0 0 1-2.4 3.64v3.02h3.88c2.27-2.09 3.56-5.17 3.56-8.84z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.88-3.02c-1.08.72-2.45 1.15-4.07 1.15-3.13 0-5.78-2.11-6.73-4.96H1.27v3.11A12 12 0 0 0 12 24z"/>
+          <path fill="#FBBC05" d="M5.27 14.27a7.2 7.2 0 0 1 0-4.54V6.62H1.27a12 12 0 0 0 0 10.76l4-3.11z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.27 6.62l4 3.11C6.22 6.86 8.87 4.75 12 4.75z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <p id="login-error" class="admin-error" style="display:none;"></p>
+    </div>
+  </div>
+
+  <!-- ============ 403 (signed in, wrong account) ============ -->
+  <div id="admin-403" class="admin-screen" style="display:none;">
+    <div class="admin-glow admin-glow-danger" aria-hidden="true"></div>
+    <div class="admin-card admin-card-danger">
+      <div class="code-403">403</div>
+      <h1>Access Denied</h1>
+      <p class="admin-sub">This account isn't authorized to view the admin panel.</p>
+      <button id="signout-btn" class="btn-secondary">Sign out</button>
+    </div>
+  </div>
+
+  <!-- ============ DASHBOARD SHELL (Phase 2 fills this in) ============ -->
+  <div id="admin-dashboard" class="admin-screen admin-dashboard-shell" style="display:none;">
+    <header class="admin-topbar">
+      <div class="brand">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+        </span>
+        Chat With Strangers <span class="admin-badge">Admin</span>
+      </div>
+      <div class="admin-account">
+        <span id="admin-account-email"></span>
+        <button id="topbar-signout-btn" class="btn-secondary btn-small">Sign out</button>
+      </div>
+    </header>
+    <main id="dashboard-root" class="dashboard-root">
+      <p class="admin-placeholder">Signed in successfully. Dashboard widgets (Phase 2) mount here.</p>
+    </main>
+  </div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="admin-auth.js"></script>
+</body>
+</html>
