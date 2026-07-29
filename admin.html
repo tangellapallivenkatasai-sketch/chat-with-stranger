@@ -67,14 +67,143 @@
         <button id="topbar-signout-btn" class="btn-secondary btn-small">Sign out</button>
       </div>
     </header>
-    <main id="dashboard-root" class="dashboard-root">
-      <p class="admin-placeholder">Signed in successfully. Dashboard widgets (Phase 2) mount here.</p>
+    <main class="dashboard-root">
+      <nav class="admin-tabs" id="admin-tabs">
+        <button class="admin-tab active" data-tab="overview">Dashboard</button>
+        <button class="admin-tab" data-tab="users">Online Users</button>
+        <button class="admin-tab" data-tab="chats">Active Chats</button>
+        <button class="admin-tab" data-tab="queue">Waiting Queue</button>
+        <button class="admin-tab" data-tab="activity">Activity Feed</button>
+      </nav>
+
+      <!-- ---------------- OVERVIEW ---------------- -->
+      <section class="tab-panel active" id="panel-overview">
+        <div class="stat-grid" id="stat-grid">
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="3" stroke="#5b6cf7" stroke-width="1.8"/><path d="M3.5 19c.5-3 2.7-5 5.5-5s5 2 5.5 5" stroke="#5b6cf7" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-value" id="stat-active-users">–</div>
+            <div class="stat-label">Active Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-purple" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h16v11H8l-4 4V4z" stroke="#9b5cf6" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="stat-value" id="stat-active-chats">–</div>
+            <div class="stat-label">Active Chats</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-pink" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l3 2" stroke="#ec4899" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="8" stroke="#ec4899" stroke-width="1.8"/></svg>
+            </div>
+            <div class="stat-value" id="stat-waiting-queue">–</div>
+            <div class="stat-label">Waiting Queue</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><circle cx="9" cy="9" r="3" stroke="#5b6cf7" stroke-width="1.8"/><circle cx="17" cy="10" r="2.4" stroke="#5b6cf7" stroke-width="1.8"/><path d="M3.5 19c.5-3 2.7-5 5.5-5s5 2 5.5 5" stroke="#5b6cf7" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </div>
+            <div class="stat-value" id="stat-group-users">–</div>
+            <div class="stat-label">Group Chat Users</div>
+          </div>
+        </div>
+        <div class="panel-block">
+          <div class="panel-block-header"><h2>Latest Activity</h2></div>
+          <div id="overview-activity-list" class="activity-list activity-list-compact"></div>
+        </div>
+      </section>
+
+      <!-- ---------------- ONLINE USERS ---------------- -->
+      <section class="tab-panel" id="panel-users">
+        <div class="panel-toolbar">
+          <input type="text" id="users-search" class="search-input" placeholder="Search by nickname or session ID…" />
+        </div>
+        <div class="table-wrap">
+          <table class="admin-table" id="users-table">
+            <thead>
+              <tr>
+                <th data-sort="nickname">Nickname</th>
+                <th data-sort="id">Session ID</th>
+                <th data-sort="status">Status</th>
+                <th data-sort="roomId">Room ID</th>
+                <th data-sort="joinTime">Join Time</th>
+                <th data-sort="lastActive">Last Active</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="users-empty" style="display:none;">No one is online right now.</div>
+        </div>
+      </section>
+
+      <!-- ---------------- ACTIVE CHATS ---------------- -->
+      <section class="tab-panel" id="panel-chats">
+        <div class="table-wrap">
+          <table class="admin-table" id="chats-table">
+            <thead>
+              <tr>
+                <th>Room ID</th>
+                <th>User A</th>
+                <th>User B</th>
+                <th>Type</th>
+                <th>Start Time</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="chats-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="chats-empty" style="display:none;">No active chats right now.</div>
+        </div>
+      </section>
+
+      <!-- ---------------- WAITING QUEUE ---------------- -->
+      <section class="tab-panel" id="panel-queue">
+        <div class="table-wrap">
+          <table class="admin-table" id="queue-table">
+            <thead>
+              <tr>
+                <th>Nickname</th>
+                <th>Session ID</th>
+                <th>Queue</th>
+                <th>Waiting Time</th>
+              </tr>
+            </thead>
+            <tbody id="queue-tbody"></tbody>
+          </table>
+          <div class="empty-state" id="queue-empty" style="display:none;">No one is waiting to be matched.</div>
+        </div>
+      </section>
+
+      <!-- ---------------- ACTIVITY FEED ---------------- -->
+      <section class="tab-panel" id="panel-activity">
+        <div id="activity-list" class="activity-list"></div>
+        <div class="empty-state" id="activity-empty" style="display:none;">No activity yet.</div>
+      </section>
     </main>
+
+    <!-- ---------------- LIVE CHAT VIEWER (side panel) ---------------- -->
+    <div class="viewer-overlay" id="viewer-overlay" style="display:none;">
+      <div class="viewer-panel">
+        <div class="viewer-header">
+          <div>
+            <h3 id="viewer-title">Room</h3>
+            <p id="viewer-sub" class="viewer-sub"></p>
+          </div>
+          <button class="btn-secondary btn-small" id="viewer-close">Close</button>
+        </div>
+        <div class="viewer-messages" id="viewer-messages"></div>
+      </div>
+    </div>
   </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 <script src="admin-auth.js"></script>
+<script src="admin.js"></script>
+<script src="admin-dashboard.js"></script>
 </body>
 </html>
