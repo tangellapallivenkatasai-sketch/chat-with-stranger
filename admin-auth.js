@@ -5,12 +5,7 @@
    of the existing Realtime Database connection.
    ========================================================= */
 
-// >>> REPLACE THIS with the exact Google account email that should
-//     have admin access. This must also match the email used in
-//     firebase-rules-additions.json ("ADMIN_EMAIL") — both the client
-//     check below AND the database rules enforce this; the UI check
-//     alone is not what makes this secure.
-const ADMIN_EMAIL = "REPLACE_WITH_YOUR_ADMIN_EMAIL@example.com";
+const ADMIN_EMAIL = "tangellapallivenkatasai@gmail.com";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB2lhbK9zLBQx5Tl_8Skw_uit0zmPr3DpY",
@@ -22,12 +17,14 @@ const firebaseConfig = {
   appId: "1:122065028796:web:a5a47552d92ceb5bf232b9"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Prevent duplicate initialization
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
 const adminDb = firebase.database();
 
-// exposed globally so Phase 2's admin-dashboard.js can reuse the same
-// authenticated connection without re-initializing Firebase
 window.adminAuth = auth;
 window.adminDb = adminDb;
 
@@ -38,42 +35,79 @@ const screens = {
   dashboard: document.getElementById("admin-dashboard")
 };
 
-function showScreen(name){
+function showScreen(name) {
   Object.entries(screens).forEach(([key, el]) => {
-    el.style.display = key === name ? (name === "dashboard" ? "block" : "flex") : "none";
+    if (!el) return;
+    el.style.display =
+      key === name
+        ? (name === "dashboard" ? "block" : "flex")
+        : "none";
   });
 }
 
 showScreen("loading");
 
 auth.onAuthStateChanged(user => {
-  if (!user){
+  if (!user) {
     showScreen("login");
     return;
   }
 
-  if (user.email !== ADMIN_EMAIL){
+  if (
+    !user.email ||
+    user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()
+  ) {
     showScreen("denied");
     return;
   }
 
-  // authorized — reveal the dashboard shell (Phase 2 mounts widgets into #dashboard-root)
-  document.getElementById("admin-account-email").textContent = user.email;
+  const emailEl = document.getElementById("admin-account-email");
+  if (emailEl) {
+    emailEl.textContent = user.email;
+  }
+
   showScreen("dashboard");
-  window.dispatchEvent(new CustomEvent("admin:authorized", { detail: { db: adminDb, user } }));
+
+  window.dispatchEvent(
+    new CustomEvent("admin:authorized", {
+      detail: {
+        db: adminDb,
+        user
+      }
+    })
+  );
 });
 
-document.getElementById("google-signin-btn").addEventListener("click", () => {
-  const errorEl = document.getElementById("login-error");
-  errorEl.style.display = "none";
+const googleBtn = document.getElementById("google-signin-btn");
 
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider).catch(err => {
-    console.error("Admin sign-in failed:", err);
-    errorEl.textContent = "Sign-in failed. Please try again.";
-    errorEl.style.display = "block";
+if (googleBtn) {
+  googleBtn.addEventListener("click", async () => {
+    const errorEl = document.getElementById("login-error");
+
+    if (errorEl) {
+      errorEl.style.display = "none";
+    }
+
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      await auth.signInWithPopup(provider);
+    } catch (err) {
+      console.error("Admin sign-in failed:", err);
+
+      if (errorEl) {
+        errorEl.textContent = err.message;
+        errorEl.style.display = "block";
+      }
+    }
   });
-});
+}
 
-document.getElementById("signout-btn").addEventListener("click", () => auth.signOut());
-document.getElementById("topbar-signout-btn").addEventListener("click", () => auth.signOut());
+const signoutBtn = document.getElementById("signout-btn");
+if (signoutBtn) {
+  signoutBtn.addEventListener("click", () => auth.signOut());
+}
+
+const topbarBtn = document.getElementById("topbar-signout-btn");
+if (topbarBtn) {
+  topbarBtn.addEventListener("click", () => auth.signOut());
+}
