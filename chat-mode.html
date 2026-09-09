@@ -945,25 +945,12 @@ const db = firebase.database();
 const storage = firebase.storage(); // voice messages — gs://chitchat-709cc.firebasestorage.app, published rules already approved
 
 // -- AI fallback support (Stage 2B) --
-// App Check is REQUIRED here because functions/index.js declares enforceAppCheck: true
-// (fail-closed by design, per the Stage 2A security review). Until RECAPTCHA_V3_SITE_KEY
-// below is replaced with a real reCAPTCHA v3 site key registered in
-// Firebase Console > App Check for this project, every call to generateAiReply will be
-// rejected by Firebase before it ever reaches the function — that is the intended,
-// fail-closed behavior, not a bug, until Console setup is completed.
-const RECAPTCHA_V3_SITE_KEY = "REPLACE_WITH_YOUR_RECAPTCHA_V3_SITE_KEY";
-try {
-  firebase.appCheck().activate(
-    new firebase.appCheck.ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
-    true // isTokenAutoRefreshEnabled
-  );
-} catch (appCheckErr){
-  // Never let an App Check setup problem (e.g. the placeholder site key still being
-  // unreplaced) block the rest of this script from loading. Normal real-user chat does
-  // not depend on App Check at all — only the AI fallback's Cloud Function call does,
-  // and that already fails silently on its own (see callAiReply's .catch()).
-  console.warn("App Check activation failed — AI fallback will be unavailable until this is configured:", appCheckErr && appCheckErr.message);
-}
+// App Check activation was removed here (see project notes): it ran unconditionally on
+// every page load using a placeholder reCAPTCHA site key, which not only failed on its
+// own but also caused the Storage SDK — sharing this same app instance — to attempt
+// App-Check-token attachment on voice-message uploads, breaking them. The published
+// Storage Rules never required App Check, and the AI fallback Cloud Function remains
+// undeployed either way, so nothing here was actually depending on this call succeeding.
 const functionsClient = firebase.app().functions("us-central1"); // matches the function's declared region
 
 /* =========================================================
