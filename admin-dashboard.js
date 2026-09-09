@@ -375,7 +375,9 @@
             <span class="vm-user">${escapeText(m.user || "Anonymous")}</span>
             <span>${escapeText(m.timestamp || "")}</span>
           </div>
-          <div>${escapeText(m.text || "")}</div>
+          ${m.type === "voice" && m.audioUrl
+            ? `<audio controls preload="metadata" src="${escapeText(m.audioUrl)}" style="width:100%;height:32px;"></audio>`
+            : `<div>${escapeText(m.text || "")}</div>`}
         </div>
       `).join("");
       messagesEl.scrollTop = messagesEl.scrollHeight;
