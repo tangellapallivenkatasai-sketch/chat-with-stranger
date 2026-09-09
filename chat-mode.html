@@ -6,14 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="robots" content="index, follow">
 <meta name="description" content="Chat with strangers instantly. No login, no signup. Anonymous chat rooms to talk with strangers online and make new friends.">
-<!-- Site icons -->
-<link rel="icon" href="/images/logo/favicon.ico" />
-<link rel="icon" type="image/png" sizes="16x16" href="/images/logo/favicon-16x16.png" />
-<link rel="icon" type="image/png" sizes="32x32" href="/images/logo/favicon-32x32.png" />
-<link rel="icon" type="image/png" sizes="48x48" href="/images/logo/favicon-48x48.png" />
-<link rel="apple-touch-icon" sizes="180x180" href="/images/logo/apple-touch-icon.png" />
-<link rel="icon" type="image/png" sizes="192x192" href="/images/logo/android-chrome-192x192.png" />
-<link rel="icon" type="image/png" sizes="512x512" href="/images/logo/android-chrome-512x512.png" />
+<link rel="icon" href="/favicon.png" type="image/png" />
 <style>
   :root{
     --bg:#0b0d12;
@@ -654,6 +647,122 @@
   #char-count.warn{ color:#f5b942; }
   #char-count.max{ color:var(--danger); }
 
+  /* ---------- voice messages ---------- */
+  #mic-btn{ background:var(--bg-elevated-2); color:var(--text); border:1px solid var(--border); }
+  #mic-btn:hover:not(:disabled){ border-color:var(--accent); }
+  #mic-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .voice-permission-note{
+    margin:0;
+    padding:8px 16px calc(6px + var(--safe-bottom));
+    font-size:0.78rem;
+    color:var(--danger);
+    background:var(--bg-elevated);
+    text-align:center;
+  }
+
+  #voice-recorder-bar{
+    display:none;
+    align-items:center;
+    padding:10px 14px calc(10px + var(--safe-bottom));
+    background:var(--bg-elevated);
+    border-top:1px solid var(--border-soft);
+    flex-shrink:0;
+  }
+  .voice-state{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    width:100%;
+  }
+
+  .voice-rec-dot{
+    width:10px;height:10px;
+    border-radius:50%;
+    background:var(--danger);
+    flex-shrink:0;
+    animation:voicePulse 1s ease-in-out infinite;
+  }
+  @keyframes voicePulse{
+    0%,100%{ opacity:1; transform:scale(1); }
+    50%{ opacity:0.45; transform:scale(0.8); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .voice-rec-dot{ animation:none; }
+  }
+
+  #voice-timer{
+    font-variant-numeric:tabular-nums;
+    font-size:0.92rem;
+    font-weight:600;
+    color:var(--text);
+    min-width:40px;
+    flex-shrink:0;
+  }
+
+  .voice-progress-track{
+    flex:1;
+    height:4px;
+    border-radius:4px;
+    background:var(--bg-elevated-2);
+    overflow:hidden;
+  }
+  .voice-progress-fill{
+    height:100%;
+    width:0%;
+    background:var(--danger);
+    border-radius:4px;
+  }
+  #voice-upload-fill{ background:var(--accent); transition:width 0.15s ease; }
+
+  .voice-text-btn{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+    padding:8px 4px;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .voice-text-btn:hover{ color:var(--text); }
+
+  #voice-stop-btn{ background:var(--danger); color:#fff; }
+  #voice-stop-btn:hover{ filter:brightness(1.1); }
+  #voice-send-btn{ background:var(--accent); color:#fff; }
+  #voice-send-btn:hover{ background:var(--accent-hover); }
+
+  #voice-preview-audio{
+    height:36px;
+    flex:1;
+    min-width:0;
+  }
+  .voice-duration-label{
+    font-size:0.8rem;
+    color:var(--text-dim);
+    font-variant-numeric:tabular-nums;
+    flex-shrink:0;
+  }
+  .voice-uploading-label{
+    font-size:0.85rem;
+    color:var(--text-dim);
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+
+  /* voice message bubble — sent or received */
+  .voice-bubble{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .voice-bubble audio{
+    height:36px;
+    max-width:220px;
+  }
+  .message.outgoing .voice-duration-label{ color:rgba(255,255,255,0.75); }
+
   .sr-only{
     position:absolute;
     width:1px;height:1px;
@@ -778,16 +887,44 @@
 
     <div id="user-input">
       <button id="toggle-btn" class="round-btn" title="Next / Disconnect" aria-label="Find new partner or disconnect">🔁</button>
+      <button id="mic-btn" class="round-btn" aria-label="Record voice message" disabled>🎤</button>
       <input type="text" id="message-input" placeholder="Type a message…" maxlength="500" aria-label="Message" disabled />
       <span id="char-count">0/500</span>
       <button id="send-btn" class="round-btn" aria-label="Send message" disabled>➤</button>
     </div>
+
+    <div id="voice-recorder-bar" role="group" aria-label="Voice message recorder">
+      <div id="voice-recording-state" class="voice-state">
+        <span class="voice-rec-dot" aria-hidden="true"></span>
+        <span id="voice-timer">0.0s</span>
+        <div class="voice-progress-track"><div id="voice-recording-fill" class="voice-progress-fill"></div></div>
+        <button id="voice-cancel-btn" class="voice-text-btn" type="button">Cancel</button>
+        <button id="voice-stop-btn" class="round-btn" type="button" aria-label="Stop recording">■</button>
+      </div>
+
+      <div id="voice-preview-state" class="voice-state" style="display:none;">
+        <audio id="voice-preview-audio" controls preload="metadata"></audio>
+        <span id="voice-preview-duration" class="voice-duration-label"></span>
+        <button id="voice-discard-btn" class="voice-text-btn" type="button">Discard</button>
+        <button id="voice-send-btn" class="round-btn" type="button" aria-label="Send voice message">➤</button>
+      </div>
+
+      <div id="voice-uploading-state" class="voice-state" style="display:none;">
+        <span class="voice-uploading-label">Uploading…</span>
+        <div class="voice-progress-track"><div id="voice-upload-fill" class="voice-progress-fill"></div></div>
+      </div>
+    </div>
+
+    <p id="voice-permission-note" class="voice-permission-note" style="display:none;" role="status"></p>
   </div>
 
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-functions-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-check-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 
 <script>
 /* =========================================================
@@ -805,6 +942,29 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const storage = firebase.storage(); // voice messages — gs://chitchat-709cc.firebasestorage.app, published rules already approved
+
+// -- AI fallback support (Stage 2B) --
+// App Check is REQUIRED here because functions/index.js declares enforceAppCheck: true
+// (fail-closed by design, per the Stage 2A security review). Until RECAPTCHA_V3_SITE_KEY
+// below is replaced with a real reCAPTCHA v3 site key registered in
+// Firebase Console > App Check for this project, every call to generateAiReply will be
+// rejected by Firebase before it ever reaches the function — that is the intended,
+// fail-closed behavior, not a bug, until Console setup is completed.
+const RECAPTCHA_V3_SITE_KEY = "REPLACE_WITH_YOUR_RECAPTCHA_V3_SITE_KEY";
+try {
+  firebase.appCheck().activate(
+    new firebase.appCheck.ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
+    true // isTokenAutoRefreshEnabled
+  );
+} catch (appCheckErr){
+  // Never let an App Check setup problem (e.g. the placeholder site key still being
+  // unreplaced) block the rest of this script from loading. Normal real-user chat does
+  // not depend on App Check at all — only the AI fallback's Cloud Function call does,
+  // and that already fails silently on its own (see callAiReply's .catch()).
+  console.warn("App Check activation failed — AI fallback will be unavailable until this is configured:", appCheckErr && appCheckErr.message);
+}
+const functionsClient = firebase.app().functions("us-central1"); // matches the function's declared region
 
 /* =========================================================
    STATE
@@ -828,6 +988,23 @@ const userInput = document.getElementById("message-input");
 const sendBtn = document.getElementById("send-btn");
 const toggleBtn = document.getElementById("toggle-btn");
 const typingIndicator = document.getElementById("typing-indicator");
+
+// -- voice messages: DOM refs --
+const micBtn = document.getElementById("mic-btn");
+const voiceRecorderBar = document.getElementById("voice-recorder-bar");
+const voiceRecordingState = document.getElementById("voice-recording-state");
+const voicePreviewState = document.getElementById("voice-preview-state");
+const voiceUploadingState = document.getElementById("voice-uploading-state");
+const voiceTimerEl = document.getElementById("voice-timer");
+const voiceRecordingFill = document.getElementById("voice-recording-fill");
+const voiceCancelBtn = document.getElementById("voice-cancel-btn");
+const voiceStopBtn = document.getElementById("voice-stop-btn");
+const voicePreviewAudio = document.getElementById("voice-preview-audio");
+const voicePreviewDuration = document.getElementById("voice-preview-duration");
+const voiceDiscardBtn = document.getElementById("voice-discard-btn");
+const voiceSendBtn = document.getElementById("voice-send-btn");
+const voiceUploadFill = document.getElementById("voice-upload-fill");
+const voicePermissionNote = document.getElementById("voice-permission-note");
 const partnerNameEl = document.getElementById("partner-name");
 const partnerSubEl = document.getElementById("partner-sub");
 const statusDot = document.getElementById("status-dot");
@@ -840,6 +1017,14 @@ let sessionId = null;        // stable per-session key for presence/activity, se
 let presenceRef = null;
 let heartbeatIntervalId = null;
 let adminEndRef = null;      // listens for an admin-triggered force-disconnect on the current room
+
+// -- AI fallback state (Stage 2B) --
+let aiFallbackTimerId = null;   // pending "no real match yet" timer for the current search attempt
+let aiFallbackStarted = false;  // guards against more than one fallback firing per search attempt
+let isCurrentRoomAi = false;    // is currentRoom an AI room right now
+let currentAiName = null;       // the AI display name for currentRoom, if isCurrentRoomAi
+let aiTypingTimeoutId = null;   // safety-clears the reused typing indicator if no AI reply ever arrives
+let lastAiName = null;          // avoids immediately repeating the same AI name back-to-back
 
 /* =========================================================
    PRESENCE & ACTIVITY LOGGING (Phase 1 — admin panel support)
@@ -977,6 +1162,7 @@ function connectStranger(){
   logActivity("queue_enter");
   enterChatUI("Stranger", "Searching…", "searching");
   findPartner();
+  startAiFallbackTimer();
 }
 
 function joinGroupChat(){
@@ -999,6 +1185,7 @@ document.querySelectorAll(".modal-option").forEach(btn => {
     logActivity("queue_enter");
     enterChatUI(`Looking for: ${gender}`, "Searching…", "searching");
     findGenderPartner(gender);
+    startAiFallbackTimer();
   });
 });
 // allow overlay background tap to dismiss (but not the card itself)
@@ -1041,6 +1228,7 @@ function findPartner(){
   matchmakingInFlight = true;
   sendBtn.disabled = true;
   userInput.disabled = true;
+  micBtn.disabled = true;
 
   const queueRef = db.ref("strangerQueue");
   myId = db.ref().push().key;
@@ -1086,6 +1274,7 @@ function findGenderPartner(preferredGender){
   matchmakingInFlight = true;
   sendBtn.disabled = true;
   userInput.disabled = true;
+  micBtn.disabled = true;
 
   const queueRef = db.ref("genderQueue");
   myId = db.ref().push().key;
@@ -1129,6 +1318,7 @@ function findGenderPartner(preferredGender){
 
 // remove any in-progress queue listener/entry (used on disconnect toggle or "Menu")
 function teardownMatchmaking(){
+  clearAiFallbackTimer(); // no pending fallback should survive leaving the queue, by any path
   matchmakingInFlight = false;
   if (activeQueueRef){
     activeQueueRef.off("child_removed");
@@ -1142,10 +1332,77 @@ function teardownMatchmaking(){
 }
 
 /* =========================================================
+   AI FALLBACK (Stage 2B)
+   Cold-start mitigation for 1-v-1 matching only. Never touches
+   strangerQueue/genderQueue, never writes a presence entry, and
+   never runs for group chat. Real matches always win: the timer
+   below only ever fires if matchmakingInFlight is still true when
+   it goes off, and startChatRoom() — the one function every real
+   match already funnels through — cancels it unconditionally the
+   moment it runs, for any reason.
+   ========================================================= */
+
+// Conservative starting point per the Phase 0 design discussion — tune this
+// using real wait-time data from the admin panel's Waiting Queue tab once
+// there's traffic to look at, rather than guessing further.
+const AI_FALLBACK_TIMEOUT_MS = 15000;
+
+const AI_NAMES = [
+  "Alex", "Jordan", "Sam", "Riley", "Casey", "Morgan", "Taylor", "Jamie",
+  "Avery", "Quinn", "Rowan", "Skyler", "Emerson", "Finley", "Harper", "Reese",
+  "Dakota", "Peyton", "Kendall", "Sage", "Blake", "Charlie", "Drew", "Elliot",
+  "Hayden", "Jesse", "Kai", "Lane", "Micah", "Noel"
+];
+
+function pickAiName(){
+  let name;
+  do {
+    name = AI_NAMES[Math.floor(Math.random() * AI_NAMES.length)];
+  } while (name === lastAiName && AI_NAMES.length > 1);
+  lastAiName = name;
+  return name;
+}
+
+function startAiFallbackTimer(){
+  clearAiFallbackTimer(); // never allow two pending timers at once
+  aiFallbackStarted = false; // fresh guard for this search attempt
+  aiFallbackTimerId = setTimeout(() => {
+    aiFallbackTimerId = null;
+    triggerAiFallback();
+  }, AI_FALLBACK_TIMEOUT_MS);
+}
+
+function clearAiFallbackTimer(){
+  if (aiFallbackTimerId){
+    clearTimeout(aiFallbackTimerId);
+    aiFallbackTimerId = null;
+  }
+}
+
+function triggerAiFallback(){
+  // Real users always get priority: if a match already happened, matchmakingInFlight
+  // is already false by the time this fires, and there's nothing to do.
+  if (!matchmakingInFlight) return;
+  if (aiFallbackStarted) return; // only one fallback per search attempt
+  aiFallbackStarted = true;
+
+  teardownMatchmaking(); // cleanly leave strangerQueue/genderQueue via the existing, unmodified function
+
+  const aiName = pickAiName();
+  const aiId = "ai_" + db.ref().push().key; // synthetic id, never written to any real queue
+  const roomId = "ai_" + db.ref().push().key; // ai_ prefix, per the required room-id scheme
+
+  matchmakingInFlight = false;
+  startChatRoom(roomId, aiName, aiId); // the exact same funnel every real match uses — no new UI, no new render path
+}
+
+/* =========================================================
    ROOM / CHAT
    Paths unchanged: rooms/{roomId}/messages, rooms/{roomId}/typing
    ========================================================= */
 function startChatRoom(roomId, partnerName, partnerId = null){
+  clearAiFallbackTimer(); // a real match (or an AI room starting) means no fallback should fire — this
+                          // is the one function every successful real match is guaranteed to call
   teardownRoom(); // clean up any previous room's listeners first
 
   currentRoom = roomId;
@@ -1156,17 +1413,21 @@ function startChatRoom(roomId, partnerName, partnerId = null){
   messageKeys.clear();
 
   const isGroup = roomId === "group_room";
+  const isAi = roomId.startsWith("ai_");
+  isCurrentRoomAi = isAi;
+  currentAiName = isAi ? partnerName : null;
   setPartnerStatus(partnerName, isGroup ? "Group room" : "Connected", "connected");
 
   sendBtn.disabled = false;
   userInput.disabled = false;
+  micBtn.disabled = !voiceSupported;
   userInput.focus();
 
   listenForMessages(isGroup);
   listenForTyping();
   announceSystem(isGroup ? "You joined the group room." : `You're now chatting with ${partnerName}.`);
 
-  // -- admin-panel support: room metadata + presence (private/gender rooms only) --
+  // -- admin-panel support: room metadata + presence (private/gender/AI rooms — not group) --
   if (!isGroup){
     updatePresence({ status: "chatting", roomId });
     logActivity("matched", { roomId });
@@ -1181,7 +1442,7 @@ function startChatRoom(roomId, partnerName, partnerId = null){
         participants[myId] = { nickname };
         if (partnerId) participants[partnerId] = { nickname: partnerName };
         metaRef.set({
-          type: roomId.startsWith("gender_") ? "gender" : "private",
+          type: isAi ? "ai" : (roomId.startsWith("gender_") ? "gender" : "private"),
           participants,
           startTime: firebase.database.ServerValue.TIMESTAMP,
           status: "active"
@@ -1189,7 +1450,8 @@ function startChatRoom(roomId, partnerName, partnerId = null){
       }
     });
 
-    // let an admin end this room remotely (Disconnect Room action, Phase 2)
+    // let an admin end this room remotely (Disconnect Room action, Phase 2) — works
+    // unmodified for AI rooms too, since it only reads/writes meta/status
     adminEndRef = db.ref(`rooms/${roomId}/meta/status`);
     adminEndRef.on("value", statusSnap => {
       if (statusSnap.val() === "ended_by_admin" && currentRoom === roomId){
@@ -1216,6 +1478,17 @@ function teardownRoom(){
     });
     logActivity("room_ended", { roomId: currentRoom });
   }
+
+  // -- AI fallback cleanup (Stage 2B) --
+  isCurrentRoomAi = false;
+  currentAiName = null;
+  if (aiTypingTimeoutId){
+    clearTimeout(aiTypingTimeoutId);
+    aiTypingTimeoutId = null;
+  }
+
+  // -- voice message cleanup: abandon any in-progress recording/preview/upload --
+  cancelVoiceRecording();
 
   messagesRef = null;
   typingRef = null;
@@ -1244,7 +1517,9 @@ toggleBtn.addEventListener("click", () => {
     setPartnerStatus("Finding a stranger…", "Please wait", "searching");
     sendBtn.disabled = true;
     userInput.disabled = true;
+    micBtn.disabled = true;
     findPartner();
+    startAiFallbackTimer();
     toggleState = 1;
   } else {
     teardownRoom();
@@ -1256,6 +1531,7 @@ toggleBtn.addEventListener("click", () => {
     setPartnerStatus("Disconnected", "Tap 🔁 to reconnect", "disconnected");
     sendBtn.disabled = true;
     userInput.disabled = true;
+    micBtn.disabled = true;
     toggleState = 0;
   }
 });
@@ -1276,11 +1552,47 @@ function sendMessage(){
     reactions: {},
     replyTo: null
   };
-  messagesRef.push(message);
+  const pushedRef = messagesRef.push(message);
   updatePresence({});
   userInput.value = "";
   updateCharCount();
   clearTyping();
+
+  // -- AI fallback (Stage 2B): ask the Cloud Function for a reply, if this is an AI room --
+  if (isCurrentRoomAi){
+    callAiReply(currentRoom, pushedRef.key);
+  }
+}
+
+// Calls the existing Cloud Function, sending only identifiers — the server reads the
+// conversation itself and writes the reply, per the approved design. Any failure here
+// is handled silently: no raw error, no broken UI, no trapped user — the existing
+// leave/new-chat flow keeps working regardless of whether this call ever resolves.
+function callAiReply(roomId, messageId){
+  const aiName = currentAiName;
+
+  // Reuse the EXISTING typing indicator to show the AI is "responding" — no new UI.
+  if (typingRef) typingRef.set(aiName);
+  if (aiTypingTimeoutId) clearTimeout(aiTypingTimeoutId);
+  aiTypingTimeoutId = setTimeout(() => {
+    aiTypingTimeoutId = null;
+    if (typingRef) typingRef.set(null);
+  }, 12000); // safety-clear if no reply ever arrives (limit reached, provider failure — all silent by design)
+
+  functionsClient.httpsCallable("generateAiReply")({
+    roomId,
+    messageId,
+    aiName,
+    aiAvatarSeed: aiName
+  }).catch(err => {
+    console.warn("AI reply request failed (handled silently, no UI change):", err.message);
+    if (currentRoom !== roomId) return; // stale response for a room already left — do not touch a newer room's state
+    if (aiTypingTimeoutId){
+      clearTimeout(aiTypingTimeoutId);
+      aiTypingTimeoutId = null;
+    }
+    if (typingRef) typingRef.set(null);
+  });
 }
 
 sendBtn.addEventListener("click", sendMessage);
@@ -1290,6 +1602,298 @@ userInput.addEventListener("keydown", e => {
     sendMessage();
   }
 });
+
+/* =========================================================
+   VOICE MESSAGES
+   sendMessage() above is untouched — voice send is a fully
+   separate path that reuses messagesRef, exactly like sendMessage
+   does, but never calls or modifies it.
+
+   Storage rules (already published, not touched by this code):
+     voice-messages/{roomId}/{fileName}
+       allow read: if true
+       allow write: if resource == null
+                     && request.resource.size <= 256 * 1024
+                     && request.resource.contentType.matches('audio/.*')
+   The "resource == null" clause means a path can only ever be
+   written ONCE — this code always generates a brand-new message
+   key per attempt (including retries), so it never reuses a path
+   Storage has already accepted a write for.
+   ========================================================= */
+
+const VOICE_MAX_DURATION_SEC = 10.0;               // hard cap, per the exact requirement
+const VOICE_DURATION_TOLERANCE_SEC = 0.35;          // small allowance for encoder/timing rounding only
+const VOICE_MAX_FILE_BYTES = 256 * 1024;            // mirrors the published Storage rule exactly
+const VOICE_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+  "audio/ogg"
+];
+
+let voiceSupported = false;       // computed once at load — gates whether mic-btn can ever be enabled
+let voiceMimeType = null;
+let voiceMediaRecorder = null;
+let voiceMediaStream = null;
+let voiceRecordedChunks = [];
+let voiceRecordingStartMs = 0;
+let voiceTimerIntervalId = null;
+let voiceAutoStopTimeoutId = null;
+let voiceRecordedBlob = null;
+let voicePreviewObjectUrl = null;
+let voiceUploadTask = null;
+
+function pickSupportedVoiceMimeType(){
+  if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) return null;
+  for (const type of VOICE_MIME_CANDIDATES){
+    if (MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return null;
+}
+
+function voiceFileExtension(mimeType){
+  if (mimeType.startsWith("audio/webm")) return "webm";
+  if (mimeType.startsWith("audio/mp4")) return "m4a";
+  if (mimeType.startsWith("audio/ogg")) return "ogg";
+  return "webm";
+}
+
+// One-time feature detection. If unsupported, mic-btn stays permanently
+// disabled (in addition to its normal room-connected gating) and text
+// messaging is completely unaffected either way.
+(function initVoiceSupport(){
+  const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  voiceMimeType = pickSupportedVoiceMimeType();
+  voiceSupported = hasGetUserMedia && !!voiceMimeType;
+  if (!voiceSupported){
+    micBtn.title = "Voice messages aren't supported in this browser";
+  }
+})();
+
+function showVoiceState(state){
+  // state: "hidden" | "recording" | "preview" | "uploading"
+  voiceRecorderBar.style.display = state === "hidden" ? "none" : "flex";
+  voiceRecordingState.style.display = state === "recording" ? "flex" : "none";
+  voicePreviewState.style.display = state === "preview" ? "flex" : "none";
+  voiceUploadingState.style.display = state === "uploading" ? "flex" : "none";
+  document.getElementById("user-input").style.display = state === "hidden" ? "flex" : "none";
+}
+
+function showVoicePermissionNote(text){
+  voicePermissionNote.textContent = text;
+  voicePermissionNote.style.display = text ? "block" : "none";
+}
+
+micBtn.addEventListener("click", async () => {
+  if (micBtn.disabled || !messagesRef) return;
+  showVoicePermissionNote("");
+
+  try{
+    // Permission is requested only here, on direct tap — never pre-emptively.
+    voiceMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch (err){
+    console.warn("Microphone permission denied or unavailable:", err && err.message);
+    showVoicePermissionNote("Microphone access was denied. You can still send text messages.");
+    return; // text messaging is completely unaffected
+  }
+
+  startVoiceRecording();
+});
+
+function startVoiceRecording(){
+  voiceRecordedChunks = [];
+  voiceRecordedBlob = null;
+
+  try{
+    voiceMediaRecorder = new MediaRecorder(voiceMediaStream, { mimeType: voiceMimeType });
+  } catch (err){
+    console.warn("MediaRecorder could not start:", err && err.message);
+    showVoicePermissionNote("Recording isn't available right now.");
+    stopMediaStreamTracks();
+    return;
+  }
+
+  voiceMediaRecorder.ondataavailable = e => {
+    if (e.data && e.data.size > 0) voiceRecordedChunks.push(e.data);
+  };
+  voiceMediaRecorder.onstop = onVoiceRecordingStopped;
+
+  voiceMediaRecorder.start();
+  voiceRecordingStartMs = Date.now();
+  showVoiceState("recording");
+  voiceTimerEl.textContent = "0.0s";
+  voiceRecordingFill.style.width = "0%";
+
+  // Visual timer, ticking for display only.
+  voiceTimerIntervalId = setInterval(() => {
+    const elapsed = Math.min((Date.now() - voiceRecordingStartMs) / 1000, VOICE_MAX_DURATION_SEC);
+    voiceTimerEl.textContent = elapsed.toFixed(1) + "s";
+    voiceRecordingFill.style.width = ((elapsed / VOICE_MAX_DURATION_SEC) * 100) + "%";
+  }, 100);
+
+  // The ACTUAL 10.0-second hard stop — a single authoritative timer, independent
+  // of the display timer above, so UI drift can never affect the real cutoff.
+  voiceAutoStopTimeoutId = setTimeout(() => {
+    stopVoiceRecording();
+  }, VOICE_MAX_DURATION_SEC * 1000);
+}
+
+function clearVoiceTimers(){
+  if (voiceTimerIntervalId){ clearInterval(voiceTimerIntervalId); voiceTimerIntervalId = null; }
+  if (voiceAutoStopTimeoutId){ clearTimeout(voiceAutoStopTimeoutId); voiceAutoStopTimeoutId = null; }
+}
+
+function stopMediaStreamTracks(){
+  if (voiceMediaStream){
+    voiceMediaStream.getTracks().forEach(track => track.stop());
+    voiceMediaStream = null;
+  }
+}
+
+function stopVoiceRecording(){
+  clearVoiceTimers();
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== "inactive"){
+    voiceMediaRecorder.stop(); // onstop -> onVoiceRecordingStopped
+  }
+}
+
+voiceStopBtn.addEventListener("click", stopVoiceRecording);
+
+function onVoiceRecordingStopped(){
+  stopMediaStreamTracks();
+  const blob = new Blob(voiceRecordedChunks, { type: voiceMimeType });
+  voiceRecordedChunks = [];
+
+  // Safety check #1: reject on encoded byte size before ever touching duration/upload.
+  if (blob.size === 0){
+    showVoicePermissionNote("That recording was empty — please try again.");
+    resetVoiceUI();
+    return;
+  }
+  if (blob.size > VOICE_MAX_FILE_BYTES){
+    showVoicePermissionNote("That recording was too large to send.");
+    resetVoiceUI();
+    return;
+  }
+
+  voiceRecordedBlob = blob;
+  loadVoicePreview(blob);
+}
+
+function loadVoicePreview(blob){
+  if (voicePreviewObjectUrl) URL.revokeObjectURL(voicePreviewObjectUrl);
+  voicePreviewObjectUrl = URL.createObjectURL(blob);
+  voicePreviewAudio.src = voicePreviewObjectUrl;
+
+  voicePreviewAudio.onloadedmetadata = () => {
+    // Safety check #2: the "additional safety check" required before upload —
+    // validate the REAL decoded duration, not just elapsed wall-clock time.
+    let duration = voicePreviewAudio.duration;
+    // Some browsers report Infinity for freshly-decoded blob durations until a seek;
+    // fall back to the wall-clock elapsed time (already capped at 10.0s) in that case.
+    if (!isFinite(duration) || isNaN(duration)){
+      duration = Math.min((Date.now() - voiceRecordingStartMs) / 1000, VOICE_MAX_DURATION_SEC);
+    }
+    if (duration > VOICE_MAX_DURATION_SEC + VOICE_DURATION_TOLERANCE_SEC){
+      showVoicePermissionNote("That recording was too long to send.");
+      resetVoiceUI();
+      return;
+    }
+    voicePreviewAudio.dataset.durationSec = duration.toFixed(1);
+    voicePreviewDuration.textContent = duration.toFixed(1) + "s";
+    showVoiceState("preview");
+  };
+}
+
+voiceCancelBtn.addEventListener("click", () => {
+  clearVoiceTimers();
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== "inactive"){
+    voiceMediaRecorder.onstop = null; // discard silently, skip the normal stop pipeline
+    voiceMediaRecorder.stop();
+  }
+  stopMediaStreamTracks();
+  resetVoiceUI();
+});
+
+voiceDiscardBtn.addEventListener("click", resetVoiceUI);
+
+function resetVoiceUI(){
+  clearVoiceTimers();
+  stopMediaStreamTracks();
+  if (voicePreviewObjectUrl){
+    URL.revokeObjectURL(voicePreviewObjectUrl);
+    voicePreviewObjectUrl = null;
+  }
+  voicePreviewAudio.pause();
+  voicePreviewAudio.removeAttribute("src");
+  voicePreviewAudio.load();
+  voiceRecordedBlob = null;
+  voiceMediaRecorder = null;
+  showVoiceState("hidden");
+}
+
+function cancelVoiceRecording(){
+  if (voiceUploadTask){
+    try{ voiceUploadTask.cancel(); } catch (e){ /* already finished, ignore */ }
+    voiceUploadTask = null;
+  }
+  resetVoiceUI();
+}
+
+voiceSendBtn.addEventListener("click", () => {
+  if (!voiceRecordedBlob || !messagesRef || !currentRoom) return;
+  uploadAndSendVoiceMessage(voiceRecordedBlob, Number(voicePreviewAudio.dataset.durationSec) || 0);
+});
+
+function uploadAndSendVoiceMessage(blob, durationSec){
+  showVoiceState("uploading");
+  voiceUploadFill.style.width = "0%";
+
+  const roomId = currentRoom;
+  const messageId = db.ref().push().key; // fresh key every attempt — never reused, matches the write-once Storage rule
+  const ext = voiceFileExtension(voiceMimeType);
+  const storageRef = storage.ref(`voice-messages/${roomId}/${messageId}.${ext}`);
+
+  voiceUploadTask = storageRef.put(blob, { contentType: voiceMimeType });
+
+  voiceUploadTask.on("state_changed",
+    snapshot => {
+      const pct = snapshot.totalBytes ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100 : 0;
+      voiceUploadFill.style.width = pct + "%";
+    },
+    err => {
+      console.warn("Voice message upload failed:", err && err.message);
+      voiceUploadTask = null;
+      showVoicePermissionNote("Upload failed — please try again.");
+      resetVoiceUI();
+    },
+    async () => {
+      try{
+        const audioUrl = await storageRef.getDownloadURL();
+        const timestamp = new Date().toLocaleTimeString('en-IN', { hour12: false });
+        await messagesRef.child(messageId).set({
+          type: "voice",
+          audioUrl,
+          durationSec,
+          text: "",
+          timestamp,
+          user: nickname,
+          avatar: avatarURL,
+          reactions: {},
+          replyTo: null
+        });
+        updatePresence({});
+      } catch (err){
+        console.warn("Voice message could not be saved after upload:", err && err.message);
+        showVoicePermissionNote("Couldn't send that voice message — please try again.");
+      } finally{
+        voiceUploadTask = null;
+        resetVoiceUI();
+      }
+    }
+  );
+}
 
 /* =========================================================
    TYPING INDICATOR
@@ -1344,6 +1948,13 @@ function listenForMessages(isGroup){
     if (messageKeys.has(key)) return;
     messageKeys.add(key);
     renderMessage(msg);
+
+    // AI fallback (Stage 2B): the reply arrived, no need to wait for the safety timeout
+    if (isCurrentRoomAi && msg.user === currentAiName && aiTypingTimeoutId){
+      clearTimeout(aiTypingTimeoutId);
+      aiTypingTimeoutId = null;
+      if (typingRef) typingRef.set(null);
+    }
   });
 }
 
@@ -1378,10 +1989,29 @@ function renderMessage(msg){
   metaDiv.appendChild(timeSpan);
   body.appendChild(metaDiv);
 
-  const textSpan = document.createElement("span");
-  textSpan.className = "text";
-  textSpan.textContent = msg.text; // textContent only — never innerHTML, avoids XSS via message text
-  body.appendChild(textSpan);
+  if (msg.type === "voice" && msg.audioUrl){
+    const voiceDiv = document.createElement("div");
+    voiceDiv.className = "voice-bubble";
+
+    const audioEl = document.createElement("audio");
+    audioEl.controls = true;
+    audioEl.preload = "metadata";
+    audioEl.src = msg.audioUrl; // Storage download URL — safe as a src attribute, not executed as markup
+
+    const durationSpan = document.createElement("span");
+    durationSpan.className = "voice-duration-label";
+    const dur = Number(msg.durationSec);
+    durationSpan.textContent = isFinite(dur) && dur > 0 ? dur.toFixed(1) + "s" : "";
+
+    voiceDiv.appendChild(audioEl);
+    voiceDiv.appendChild(durationSpan);
+    body.appendChild(voiceDiv);
+  } else {
+    const textSpan = document.createElement("span");
+    textSpan.className = "text";
+    textSpan.textContent = msg.text; // textContent only — never innerHTML, avoids XSS via message text
+    body.appendChild(textSpan);
+  }
 
   msgDiv.appendChild(body);
   chatBox.appendChild(msgDiv);
