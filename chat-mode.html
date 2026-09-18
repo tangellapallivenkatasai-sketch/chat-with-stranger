@@ -437,10 +437,105 @@
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:calc(12px + var(--safe-top)) 16px 12px;
+    padding:10px 16px;
     background:var(--bg-elevated);
     border-bottom:1px solid var(--border-soft);
     flex-shrink:0;
+  }
+
+  /* ---------- chat brand row (new) ---------- */
+  #chat-brand-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:calc(10px + var(--safe-top)) 16px 10px;
+    background:var(--bg-elevated);
+    border-bottom:1px solid var(--border-soft);
+    flex-shrink:0;
+  }
+  .chat-brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    min-width:0;
+  }
+  .chat-brand-icon{
+    width:34px;height:34px;
+    border-radius:10px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(135deg, #5b6cf7, #9b5cf6);
+    flex-shrink:0;
+  }
+  .chat-brand-icon svg{ width:16px;height:16px; display:block; }
+  .chat-brand-text{
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+    line-height:1.25;
+  }
+  .chat-brand-name{
+    font-weight:700;
+    font-size:0.96rem;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chat-brand-name .accent{
+    background:linear-gradient(135deg, #5b6cf7, #9b5cf6);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+  }
+  .chat-brand-tagline{
+    font-size:0.7rem;
+    color:var(--text-faint);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .chat-menu-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 14px;
+    border-radius:10px;
+    background:var(--bg-elevated-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:border-color 0.15s ease, background 0.15s ease;
+  }
+  .chat-menu-btn:hover{ border-color:var(--accent); }
+  .chat-menu-btn svg{ width:16px;height:16px; display:block; }
+
+  .online-count-pill{
+    display:none; /* shown only once a real count is available — never a placeholder number */
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:100px;
+    background:var(--bg-elevated-2);
+    border:1px solid var(--border);
+    font-size:0.8rem;
+    font-weight:600;
+    color:var(--text-dim);
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .online-count-pill svg{ width:14px;height:14px; display:block; }
+  #online-count-value{ color:var(--text); }
+
+  @media (max-width:400px){
+    .chat-brand-tagline{ display:none; }
+  }
+  @media (max-width:340px){
+    .chat-brand-name{ font-size:0.86rem; }
+    .chat-menu-btn span{ display:none; } /* icon-only on the narrowest screens, still fully accessible via aria-label */
   }
 
   #partner-info{
@@ -560,10 +655,11 @@
   }
 
   .message .avatar{
-    width:26px;height:26px;
+    width:30px;height:30px;
     border-radius:50%;
     flex-shrink:0;
     background:var(--bg-elevated-2);
+    box-shadow:0 0 0 2px var(--border-soft);
   }
 
   .message .bubble-body{ min-width:0; }
@@ -598,18 +694,24 @@
   #user-input{
     display:flex;
     align-items:center;
-    gap:10px;
-    padding:10px 12px calc(10px + var(--safe-bottom));
+    gap:8px;
+    padding:12px calc(10px + var(--safe-bottom)) calc(12px + var(--safe-bottom)) 12px;
     background:var(--bg-elevated);
     border-top:1px solid var(--border-soft);
     flex-shrink:0;
   }
+  #user-input .round-btn{ width:48px; height:48px; font-size:1.25rem; }
 
-  #message-input{
+  .composer-input-wrap{
+    position:relative;
     flex:1;
+    min-width:0;
+  }
+  #message-input{
+    width:100%;
     border:1px solid var(--border);
-    border-radius:22px;
-    padding:12px 16px;
+    border-radius:24px;
+    padding:14px 62px 14px 18px;
     font-size:1rem;
     background:var(--bg-elevated-2);
     color:var(--text);
@@ -629,20 +731,30 @@
   }
   .round-btn:active{ transform:scale(0.94); }
 
-  #send-btn{ background:var(--accent); color:#fff; }
-  #send-btn:hover:not(:disabled){ background:var(--accent-hover); }
-  #send-btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  #send-btn{
+    background:linear-gradient(135deg, #5b6cf7, #9b5cf6);
+    color:#fff;
+    box-shadow:0 4px 14px rgba(91,108,247,0.35);
+  }
+  #send-btn:hover:not(:disabled){ filter:brightness(1.08); }
+  #send-btn:disabled{ opacity:0.4; cursor:not-allowed; box-shadow:none; }
 
-  #toggle-btn{ background:var(--bg-elevated-2); color:var(--text); border:1px solid var(--border); }
-  #toggle-btn:hover{ border-color:var(--accent); }
+  #toggle-btn{
+    background:linear-gradient(135deg, #f97316, #fb923c);
+    color:#fff;
+    border:none;
+  }
+  #toggle-btn:hover{ filter:brightness(1.08); }
 
-  /* char counter */
+  /* char counter — sits inside the input pill's right edge */
   #char-count{
-    font-size:0.68rem;
+    position:absolute;
+    right:16px;
+    top:50%;
+    transform:translateY(-50%);
+    font-size:0.7rem;
     color:var(--text-faint);
-    align-self:center;
-    min-width:34px;
-    text-align:right;
+    pointer-events:none;
   }
   #char-count.warn{ color:#f5b942; }
   #char-count.max{ color:var(--danger); }
@@ -870,6 +982,22 @@
 
   <!-- ============ CHAT CONTAINER ============ -->
   <div id="chat-container">
+    <div id="chat-brand-row">
+      <div class="chat-brand">
+        <span class="chat-brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h16v11H8l-4 4V4z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="chat-brand-text">
+          <span class="chat-brand-name">Chat With <span class="accent">Strangers</span></span>
+          <span class="chat-brand-tagline">Meet • Chat • Be You</span>
+        </span>
+      </div>
+      <button id="home-btn" class="chat-menu-btn" onclick="goHome()" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span>Menu</span>
+      </button>
+    </div>
+
     <div id="partner-row">
       <div id="partner-info">
         <span id="status-dot" class="disconnected" aria-hidden="true"></span>
@@ -878,7 +1006,10 @@
           <span id="partner-sub"></span>
         </span>
       </div>
-      <button id="home-btn" onclick="goHome()">Menu</button>
+      <span id="online-count-pill" class="online-count-pill" style="display:none;" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><circle cx="9" cy="9" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 19c.5-3 2.7-5 5.5-5s5 2 5.5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="17" cy="10" r="2.4" stroke="currentColor" stroke-width="1.8"/></svg>
+        <span id="online-count-value">—</span>&nbsp;online
+      </span>
     </div>
 
     <div id="chat-box" role="log" aria-live="polite" aria-relevant="additions"></div>
@@ -888,8 +1019,10 @@
     <div id="user-input">
       <button id="toggle-btn" class="round-btn" title="Next / Disconnect" aria-label="Find new partner or disconnect">🔁</button>
       <button id="mic-btn" class="round-btn" aria-label="Record voice message" disabled>🎤</button>
-      <input type="text" id="message-input" placeholder="Type a message…" maxlength="500" aria-label="Message" disabled />
-      <span id="char-count">0/500</span>
+      <div class="composer-input-wrap">
+        <input type="text" id="message-input" placeholder="Type a message…" maxlength="500" aria-label="Message" disabled />
+        <span id="char-count">0/500</span>
+      </div>
       <button id="send-btn" class="round-btn" aria-label="Send message" disabled>➤</button>
     </div>
 
@@ -935,7 +1068,7 @@ const firebaseConfig = {
   authDomain: "chitchat-709cc.firebaseapp.com",
   databaseURL: "https://chitchat-709cc-default-rtdb.firebaseio.com",
   projectId: "chitchat-709cc",
-  storageBucket: "chitchat-709cc.firebasestorage.app",
+  storageBucket: "chitchat-709cc.appspot.com",
   messagingSenderId: "122065028796",
   appId: "1:122065028796:web:a5a47552d92ceb5bf232b9"
 };
@@ -1032,6 +1165,40 @@ function logActivity(type, extra){
     timestamp: firebase.database.ServerValue.TIMESTAMP
   }, extra || {}));
 }
+
+/* =========================================================
+   ONLINE-COUNT PILL (header)
+   Real data only — this reads the actual presence/ node, the
+   genuine source of truth for who's online. IMPORTANT: under
+   the currently published Realtime Database rules, presence/
+   is readable only by the authenticated admin account, so this
+   read is expected to fail with permission-denied for ordinary
+   anonymous visitors — that is the current, correct behavior of
+   the published rules, not a bug in this code. Rather than fake
+   a number, the pill simply stays hidden in that case. If a
+   public-facing count is wanted, that requires a Firebase Rules
+   decision (e.g. a minimal public-read aggregate), which is
+   explicitly not made here — no Firebase changes are made by
+   this file.
+   ========================================================= */
+const onlineCountPill = document.getElementById("online-count-pill");
+const onlineCountValue = document.getElementById("online-count-value");
+
+function initOnlineCountPill(){
+  db.ref("presence").on("value",
+    snap => {
+      const val = snap.val();
+      const count = val ? Object.keys(val).length : 0;
+      onlineCountValue.textContent = String(count);
+      onlineCountPill.style.display = "inline-flex";
+    },
+    () => {
+      // Expected for anonymous visitors under the current admin-only read rule.
+      onlineCountPill.style.display = "none";
+    }
+  );
+}
+initOnlineCountPill();
 
 /* =========================================================
    ONBOARDING — live identity preview + shuffle
@@ -1945,6 +2112,24 @@ function listenForMessages(isGroup){
   });
 }
 
+// Deterministic color per nickname — same user always gets the same color, purely
+// derived from the existing nickname string already in every message. Applied only to
+// incoming messages so the existing outgoing/incoming bubble distinction is untouched.
+const MESSAGE_AVATAR_PALETTE = [
+  { text: "#a78bfa", ring: "rgba(167,139,250,0.55)" }, // purple
+  { text: "#34d399", ring: "rgba(52,211,153,0.55)" },  // green
+  { text: "#38bdf8", ring: "rgba(56,189,248,0.55)" },  // blue
+  { text: "#f472b6", ring: "rgba(244,114,182,0.55)" }, // pink
+  { text: "#fb923c", ring: "rgba(251,146,60,0.55)" },  // orange
+  { text: "#facc15", ring: "rgba(250,204,21,0.55)" }   // yellow
+];
+function paletteForName(name){
+  const s = String(name || "");
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = (hash * 31 + s.charCodeAt(i)) >>> 0;
+  return MESSAGE_AVATAR_PALETTE[hash % MESSAGE_AVATAR_PALETTE.length];
+}
+
 function renderMessage(msg){
   const isMine = msg.user === nickname;
 
@@ -1956,6 +2141,9 @@ function renderMessage(msg){
   avatar.className = "avatar";
   avatar.alt = "";
   avatar.loading = "lazy";
+  if (!isMine){
+    avatar.style.boxShadow = `0 0 0 2px ${paletteForName(msg.user).ring}`;
+  }
   msgDiv.appendChild(avatar);
 
   const body = document.createElement("div");
@@ -1967,6 +2155,9 @@ function renderMessage(msg){
   const nameSpan = document.createElement("span");
   nameSpan.className = "username";
   nameSpan.textContent = msg.user || "Anonymous";
+  if (!isMine){
+    nameSpan.style.color = paletteForName(msg.user).text;
+  }
 
   const timeSpan = document.createElement("span");
   timeSpan.className = "timestamp";
