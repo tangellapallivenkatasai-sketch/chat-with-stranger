@@ -1068,7 +1068,7 @@ const firebaseConfig = {
   authDomain: "chitchat-709cc.firebaseapp.com",
   databaseURL: "https://chitchat-709cc-default-rtdb.firebaseio.com",
   projectId: "chitchat-709cc",
-  storageBucket: "chitchat-709cc.appspot.com",
+  storageBucket: "chitchat-709cc.firebasestorage.app",
   messagingSenderId: "122065028796",
   appId: "1:122065028796:web:a5a47552d92ceb5bf232b9"
 };
@@ -1101,6 +1101,7 @@ let activeQueueRef = null;      // strangerQueue or genderQueue ref currently be
 let activeMyQueueRef = null;    // this session's own entry in that queue
 let matchmakingInFlight = false; // guards re-entrant toggle clicks during search
 let typingTimeoutId = null;      // fixes the stacking setTimeout bug
+let typingStaleTimeoutId = null; // bug-fix: local watchdog that clears a stuck typing indicator even if no further Firebase update ever arrives
 const messageKeys = new Set();
 
 const chatBox = document.getElementById("chat-box");
@@ -1562,6 +1563,11 @@ function startChatRoom(roomId, partnerName, partnerId = null){
   currentRoom = roomId;
   messagesRef = db.ref(`rooms/${roomId}/messages`);
   typingRef = db.ref(`rooms/${roomId}/typing`);
+  // Bug fix: typing state had no server-side disconnect cleanup — if a typer's browser
+  // closed, crashed, or lost network before their 3s self-clear timer fired, their
+  // typing flag stayed set forever. This mirrors the same onDisconnect pattern already
+  // used for presence and queue entries.
+  typingRef.onDisconnect().remove();
 
   chatBox.innerHTML = "";
   messageKeys.clear();
@@ -1618,7 +1624,15 @@ function startChatRoom(roomId, partnerName, partnerId = null){
 
 function teardownRoom(){
   if (messagesRef) messagesRef.off();
-  if (typingRef) typingRef.off();
+  if (typingRef){
+    typingRef.off();
+    typingRef.set(null); // bug fix: clear the value on a clean leave, not just detach the listener
+  }
+  if (typingStaleTimeoutId){
+    clearTimeout(typingStaleTimeoutId);
+    typingStaleTimeoutId = null;
+  }
+  typingIndicator.textContent = "";
 
   // -- admin-panel support: close out room metadata + detach admin listener --
   if (adminEndRef){
@@ -1726,7 +1740,7 @@ function callAiReply(roomId, messageId){
   const aiName = currentAiName;
 
   // Reuse the EXISTING typing indicator to show the AI is "responding" — no new UI.
-  if (typingRef) typingRef.set(aiName);
+  if (typingRef) typingRef.set({ name: aiName, at: firebase.database.ServerValue.TIMESTAMP });
   if (aiTypingTimeoutId) clearTimeout(aiTypingTimeoutId);
   aiTypingTimeoutId = setTimeout(() => {
     aiTypingTimeoutId = null;
@@ -1751,7 +1765,11 @@ function callAiReply(roomId, messageId){
 
 sendBtn.addEventListener("click", sendMessage);
 userInput.addEventListener("keydown", e => {
-  if (e.key === "Enter"){
+  // Some Android on-screen keyboards (Gboard and others, during IME composition)
+  // report e.key as "Unidentified" or keyCode 229 for the Enter/Go/Send key instead
+  // of a reliable "Enter" — check keyCode/which as a fallback so this still works there.
+  const isEnter = e.key === "Enter" || e.keyCode === 13 || e.which === 13;
+  if (isEnter){
     e.preventDefault();
     sendMessage();
   }
@@ -1797,6 +1815,8 @@ let voiceAutoStopTimeoutId = null;
 let voiceRecordedBlob = null;
 let voicePreviewObjectUrl = null;
 let voiceUploadTask = null;
+let voiceUploadGeneration = 0;   // bug-fix guard: lets a cancelled/superseded upload's late callbacks recognize they're stale
+let voiceUploadTimeoutId = null; // bug-fix: hard ceiling so a hung upload can never leave the UI stuck forever
 
 function pickSupportedVoiceMimeType(){
   if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) return null;
@@ -1988,6 +2008,11 @@ function resetVoiceUI(){
 }
 
 function cancelVoiceRecording(){
+  voiceUploadGeneration++; // invalidate any in-flight upload's callbacks before touching anything else
+  if (voiceUploadTimeoutId){
+    clearTimeout(voiceUploadTimeoutId);
+    voiceUploadTimeoutId = null;
+  }
   if (voiceUploadTask){
     try{ voiceUploadTask.cancel(); } catch (e){ /* already finished, ignore */ }
     voiceUploadTask = null;
@@ -2001,30 +2026,65 @@ voiceSendBtn.addEventListener("click", () => {
 });
 
 function uploadAndSendVoiceMessage(blob, durationSec){
+  const myGeneration = ++voiceUploadGeneration; // this attempt's identity — later checks confirm nothing superseded it
+  const roomId = currentRoom;
+
   showVoiceState("uploading");
   voiceUploadFill.style.width = "0%";
 
-  const roomId = currentRoom;
-  const messageId = db.ref().push().key; // fresh key every attempt — never reused, matches the write-once Storage rule
-  const ext = voiceFileExtension(voiceMimeType);
-  const storageRef = storage.ref(`voice-messages/${roomId}/${messageId}.${ext}`);
+  // Bug fix: everything from here to voiceUploadTask.on(...) used to run unguarded —
+  // any synchronous error (bad ref, malformed blob, SDK issue) left showVoiceState
+  // "uploading" set with nothing left to ever undo it. Now it can't get stuck that way.
+  let storageRef, task, messageId;
+  try{
+    messageId = db.ref().push().key; // fresh key every attempt — never reused, matches the write-once Storage rule
+    const ext = voiceFileExtension(voiceMimeType);
+    storageRef = storage.ref(`voice-messages/${roomId}/${messageId}.${ext}`);
+    task = storageRef.put(blob, { contentType: voiceMimeType });
+    voiceUploadTask = task;
+  } catch (err){
+    console.warn("Voice upload could not be started:", err && err.message);
+    if (myGeneration === voiceUploadGeneration){
+      showVoicePermissionNote("Couldn't start the upload — please try again.");
+      resetVoiceUI();
+    }
+    return;
+  }
 
-  voiceUploadTask = storageRef.put(blob, { contentType: voiceMimeType });
+  // Bug fix: hard ceiling so a hung/stalled network request (dropped mobile connection,
+  // request that never resolves either way) can never leave the UI stuck on "Uploading…"
+  // indefinitely. If nothing has settled by then, force it closed.
+  voiceUploadTimeoutId = setTimeout(() => {
+    if (myGeneration !== voiceUploadGeneration) return; // already handled by something else
+    console.warn("Voice upload timed out.");
+    try{ task.cancel(); } catch (e){ /* ignore */ }
+    voiceUploadTask = null;
+    voiceUploadTimeoutId = null;
+    showVoicePermissionNote("That took too long — please try again.");
+    resetVoiceUI();
+  }, 25000);
 
-  voiceUploadTask.on("state_changed",
+  task.on("state_changed",
     snapshot => {
+      if (myGeneration !== voiceUploadGeneration) return;
       const pct = snapshot.totalBytes ? (snapshot.bytesTransferred / snapshot.totalBytes) * 100 : 0;
       voiceUploadFill.style.width = pct + "%";
     },
     err => {
+      if (myGeneration !== voiceUploadGeneration) return; // superseded by a cancel/newer attempt — already handled
       console.warn("Voice message upload failed:", err && err.message);
+      if (voiceUploadTimeoutId){ clearTimeout(voiceUploadTimeoutId); voiceUploadTimeoutId = null; }
       voiceUploadTask = null;
       showVoicePermissionNote("Upload failed — please try again.");
       resetVoiceUI();
     },
     async () => {
+      if (voiceUploadTimeoutId){ clearTimeout(voiceUploadTimeoutId); voiceUploadTimeoutId = null; }
+      if (myGeneration !== voiceUploadGeneration) return; // superseded — the room/session already moved on
+
       try{
         const audioUrl = await storageRef.getDownloadURL();
+        if (myGeneration !== voiceUploadGeneration || !messagesRef) return; // moved on mid-await — don't write into a stale room
         const timestamp = new Date().toLocaleTimeString('en-IN', { hour12: false });
         await messagesRef.child(messageId).set({
           type: "voice",
@@ -2040,10 +2100,12 @@ function uploadAndSendVoiceMessage(blob, durationSec){
         updatePresence({});
       } catch (err){
         console.warn("Voice message could not be saved after upload:", err && err.message);
-        showVoicePermissionNote("Couldn't send that voice message — please try again.");
+        if (myGeneration === voiceUploadGeneration){
+          showVoicePermissionNote("Couldn't send that voice message — please try again.");
+        }
       } finally{
         voiceUploadTask = null;
-        resetVoiceUI();
+        if (myGeneration === voiceUploadGeneration) resetVoiceUI();
       }
     }
   );
@@ -2060,7 +2122,7 @@ userInput.addEventListener("input", () => {
   updateCharCount();
   if (!typingRef) return;
 
-  typingRef.set(nickname);
+  typingRef.set({ name: nickname, at: firebase.database.ServerValue.TIMESTAMP });
   if (typingTimeoutId) clearTimeout(typingTimeoutId);
   typingTimeoutId = setTimeout(() => {
     typingRef.set(null);
@@ -2215,12 +2277,47 @@ function scrollToBottom(){
 /* =========================================================
    LISTEN FOR TYPING
    ========================================================= */
+// Bug fix: the indicator used to blindly mirror whatever value was currently in the
+// DB, with no way to tell a valid, fresh "still typing" state from a stale leftover
+// from someone who vanished. TYPING_STALE_MS bounds how long any single typing
+// snapshot is ever trusted, regardless of whether it was ever explicitly cleared.
+const TYPING_STALE_MS = 6000;
+
 function listenForTyping(){
   if (!typingRef) return;
   typingRef.off();
   typingRef.on("value", snapshot => {
-    const name = snapshot.val();
-    typingIndicator.textContent = (name && name !== nickname) ? `${name} is typing…` : "";
+    if (typingStaleTimeoutId){
+      clearTimeout(typingStaleTimeoutId);
+      typingStaleTimeoutId = null;
+    }
+
+    const val = snapshot.val();
+    const name = val && val.name;
+    const at = val && val.at;
+
+    if (!name || name === nickname || typeof at !== "number"){
+      typingIndicator.textContent = "";
+      return;
+    }
+
+    const age = Date.now() - at;
+    if (age >= TYPING_STALE_MS){
+      // Arrived already stale (clock skew, delayed listener attach, etc.) — never display it.
+      typingIndicator.textContent = "";
+      return;
+    }
+
+    typingIndicator.textContent = `${name} is typing…`;
+
+    // Local watchdog: clears the indicator on its own after the remaining staleness
+    // window, even if no further Firebase update — including a clean "null" — ever
+    // arrives. This is the safety net independent of any client successfully writing
+    // false, exactly for cases like a backgrounded tab, a crash, or a dropped connection.
+    typingStaleTimeoutId = setTimeout(() => {
+      typingStaleTimeoutId = null;
+      typingIndicator.textContent = "";
+    }, TYPING_STALE_MS - age);
   });
 }
 
