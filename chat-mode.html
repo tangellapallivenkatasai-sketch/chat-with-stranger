@@ -635,6 +635,9 @@
     display:flex;
     gap:8px;
     align-items:flex-end;
+    position:relative;
+    touch-action:pan-y;
+    transition:transform 0.2s ease, background 0.4s ease;
   }
   @keyframes msgIn{
     from{ opacity:0; transform:translateY(6px); }
@@ -875,6 +878,108 @@
   }
   .message.outgoing .voice-duration-label{ color:rgba(255,255,255,0.75); }
 
+  /* ---------- reply feature (Group Chat only) ---------- */
+
+  /* small, always-visible fallback trigger — reliable regardless of swipe/drag support */
+  .reply-trigger-btn{
+    background:none;
+    border:none;
+    padding:2px;
+    margin-left:4px;
+    color:var(--text-faint);
+    opacity:0.7;
+    cursor:pointer;
+    font-size:0.72rem;
+    line-height:1;
+    flex-shrink:0;
+  }
+  .reply-trigger-btn:hover{ opacity:1; color:var(--text-dim); }
+  .message.outgoing .reply-trigger-btn{ color:rgba(255,255,255,0.65); }
+  .message.outgoing .reply-trigger-btn:hover{ color:#fff; }
+
+  /* compact quoted block rendered inside a message that IS a reply */
+  .quoted-reply{
+    display:block;
+    padding:6px 9px;
+    margin-bottom:6px;
+    border-left:2px solid var(--accent);
+    border-radius:6px;
+    background:rgba(255,255,255,0.04);
+    cursor:pointer;
+    max-width:100%;
+  }
+  .message.outgoing .quoted-reply{
+    border-left-color:rgba(255,255,255,0.7);
+    background:rgba(255,255,255,0.12);
+  }
+  .quoted-reply .quoted-reply-name{
+    display:block;
+    font-size:0.74rem;
+    font-weight:600;
+    color:var(--accent);
+    margin-bottom:1px;
+  }
+  .message.outgoing .quoted-reply .quoted-reply-name{ color:rgba(255,255,255,0.85); }
+  .quoted-reply .quoted-reply-text{
+    display:block;
+    font-size:0.78rem;
+    color:var(--text-faint);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .message.outgoing .quoted-reply .quoted-reply-text{ color:rgba(255,255,255,0.7); }
+
+  /* brief highlight when the user taps a quoted-reply to locate the original */
+  .message.reply-highlight{ background:rgba(91,108,247,0.22); }
+
+  /* reply preview bar — sits directly above the composer, hidden unless a reply is active */
+  #reply-preview-bar{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 14px;
+    background:var(--bg-elevated);
+    border-top:1px solid var(--border-soft);
+    flex-shrink:0;
+  }
+  .reply-preview-accent{
+    width:3px;
+    align-self:stretch;
+    border-radius:3px;
+    background:var(--accent);
+    flex-shrink:0;
+  }
+  .reply-preview-body{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+  }
+  .reply-preview-label{
+    font-size:0.76rem;
+    font-weight:600;
+    color:var(--accent);
+  }
+  #reply-preview-name{ color:var(--text); }
+  .reply-preview-text{
+    font-size:0.82rem;
+    color:var(--text-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #reply-preview-cancel{
+    background:none;
+    border:none;
+    color:var(--text-faint);
+    font-size:0.9rem;
+    cursor:pointer;
+    padding:6px;
+    flex-shrink:0;
+  }
+  #reply-preview-cancel:hover{ color:var(--text); }
+
   .sr-only{
     position:absolute;
     width:1px;height:1px;
@@ -1016,6 +1121,15 @@
 
     <div id="typing-indicator" aria-live="polite"></div>
 
+    <div id="reply-preview-bar" style="display:none;" role="group" aria-label="Replying to message">
+      <div class="reply-preview-accent" aria-hidden="true"></div>
+      <div class="reply-preview-body">
+        <span class="reply-preview-label">Replying to <span id="reply-preview-name"></span></span>
+        <span class="reply-preview-text" id="reply-preview-text"></span>
+      </div>
+      <button id="reply-preview-cancel" type="button" aria-label="Cancel reply">✕</button>
+    </div>
+
     <div id="user-input">
       <button id="toggle-btn" class="round-btn" title="Next / Disconnect" aria-label="Find new partner or disconnect">🔁</button>
       <button id="mic-btn" class="round-btn" aria-label="Record voice message" disabled>🎤</button>
@@ -1110,6 +1224,12 @@ const sendBtn = document.getElementById("send-btn");
 const toggleBtn = document.getElementById("toggle-btn");
 const typingIndicator = document.getElementById("typing-indicator");
 
+// -- reply feature: DOM refs --
+const replyPreviewBar = document.getElementById("reply-preview-bar");
+const replyPreviewName = document.getElementById("reply-preview-name");
+const replyPreviewText = document.getElementById("reply-preview-text");
+const replyPreviewCancelBtn = document.getElementById("reply-preview-cancel");
+
 // -- voice messages: DOM refs --
 const micBtn = document.getElementById("mic-btn");
 const voiceRecorderBar = document.getElementById("voice-recorder-bar");
@@ -1143,6 +1263,8 @@ let adminEndRef = null;      // listens for an admin-triggered force-disconnect 
 let aiFallbackTimerId = null;   // pending "no real match yet" timer for the current search attempt
 let aiFallbackStarted = false;  // guards against more than one fallback firing per search attempt
 let isCurrentRoomAi = false;    // is currentRoom an AI room right now
+let isCurrentRoomGroup = false; // reply feature is scoped to Group Chat only
+let activeReplyTo = null;       // { messageId, senderName, text } | null — pending reply, cleared after send/cancel
 let currentAiName = null;       // the AI display name for currentRoom, if isCurrentRoomAi
 let aiTypingTimeoutId = null;   // safety-clears the reused typing indicator if no AI reply ever arrives
 let lastAiName = null;          // avoids immediately repeating the same AI name back-to-back
@@ -1575,6 +1697,8 @@ function startChatRoom(roomId, partnerName, partnerId = null){
   const isGroup = roomId === "group_room";
   const isAi = roomId.startsWith("ai_");
   isCurrentRoomAi = isAi;
+  isCurrentRoomGroup = isGroup;
+  cancelReply(); // no reply state should carry over into a newly entered room
   currentAiName = isAi ? partnerName : null;
   setPartnerStatus(partnerName, isGroup ? "Group room" : "Connected", "connected");
 
@@ -1658,6 +1782,10 @@ function teardownRoom(){
   // -- voice message cleanup: abandon any in-progress recording/preview/upload --
   cancelVoiceRecording();
 
+  // -- reply feature cleanup: no reply state should survive leaving the room --
+  isCurrentRoomGroup = false;
+  cancelReply();
+
   messagesRef = null;
   typingRef = null;
   currentRoom = null;
@@ -1718,13 +1846,14 @@ function sendMessage(){
     user: nickname,
     avatar: avatarURL,
     reactions: {},
-    replyTo: null
+    replyTo: activeReplyTo ? { ...activeReplyTo } : null
   };
   const pushedRef = messagesRef.push(message);
   updatePresence({});
   userInput.value = "";
   updateCharCount();
   clearTyping();
+  cancelReply(); // requirement: reply state clears automatically once the reply is sent
 
   // -- AI fallback (Stage 2B): ask the Cloud Function for a reply, if this is an AI room --
   if (isCurrentRoomAi){
@@ -2163,7 +2292,7 @@ function listenForMessages(isGroup){
     const key = snapshot.key;
     if (messageKeys.has(key)) return;
     messageKeys.add(key);
-    renderMessage(msg);
+    renderMessage(msg, key);
 
     // AI fallback (Stage 2B): the reply arrived, no need to wait for the safety timeout
     if (isCurrentRoomAi && msg.user === currentAiName && aiTypingTimeoutId){
@@ -2192,11 +2321,12 @@ function paletteForName(name){
   return MESSAGE_AVATAR_PALETTE[hash % MESSAGE_AVATAR_PALETTE.length];
 }
 
-function renderMessage(msg){
+function renderMessage(msg, key){
   const isMine = msg.user === nickname;
 
   const msgDiv = document.createElement("div");
   msgDiv.className = "message " + (isMine ? "outgoing" : "incoming");
+  if (key) msgDiv.dataset.messageKey = key; // lets a quoted-reply later scroll back to this exact message
 
   const avatar = document.createElement("img");
   avatar.src = safeAvatarSrc(msg.avatar);
@@ -2227,7 +2357,48 @@ function renderMessage(msg){
 
   metaDiv.appendChild(nameSpan);
   metaDiv.appendChild(timeSpan);
+
+  // Reply feature (Group Chat only): small always-available fallback trigger,
+  // reliable regardless of whether swipe/drag works on this device.
+  if (isCurrentRoomGroup && key){
+    const replyBtn = document.createElement("button");
+    replyBtn.type = "button";
+    replyBtn.className = "reply-trigger-btn";
+    replyBtn.setAttribute("aria-label", "Reply to this message");
+    replyBtn.textContent = "↩";
+    replyBtn.addEventListener("click", () => startReply(key, msg.user, replyPreviewSourceText(msg)));
+    metaDiv.appendChild(replyBtn);
+  }
+
   body.appendChild(metaDiv);
+
+  // Compact quoted block — this message IS a reply to an earlier one.
+  if (msg.replyTo && msg.replyTo.text !== undefined){
+    const quoted = document.createElement("div");
+    quoted.className = "quoted-reply";
+    quoted.tabIndex = 0;
+    quoted.setAttribute("role", "button");
+    quoted.setAttribute("aria-label", `Jump to original message from ${msg.replyTo.senderName || "Anonymous"}`);
+
+    const qName = document.createElement("span");
+    qName.className = "quoted-reply-name";
+    qName.textContent = msg.replyTo.senderName || "Anonymous";
+
+    const qText = document.createElement("span");
+    qText.className = "quoted-reply-text";
+    qText.textContent = msg.replyTo.text;
+
+    quoted.appendChild(qName);
+    quoted.appendChild(qText);
+    quoted.addEventListener("click", () => scrollToOriginalMessage(msg.replyTo.messageId));
+    quoted.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        scrollToOriginalMessage(msg.replyTo.messageId);
+      }
+    });
+    body.appendChild(quoted);
+  }
 
   if (msg.type === "voice" && msg.audioUrl){
     const voiceDiv = document.createElement("div");
@@ -2255,7 +2426,106 @@ function renderMessage(msg){
 
   msgDiv.appendChild(body);
   chatBox.appendChild(msgDiv);
+
+  // Reply feature (Group Chat only): swipe (touch) / drag (mouse) to trigger reply.
+  // touch-action:pan-y on .message (see CSS) lets native vertical scroll keep working;
+  // this only ever acts once a gesture is clearly more horizontal than vertical.
+  if (isCurrentRoomGroup && key){
+    attachReplyGesture(msgDiv, () => startReply(key, msg.user, replyPreviewSourceText(msg)));
+  }
+
   scrollToBottom();
+}
+
+// What to show/store as the quoted preview text for a given message — voice
+// messages have no text, so they get a short, honest placeholder instead.
+function replyPreviewSourceText(msg){
+  if (msg.type === "voice") return "🎤 Voice message";
+  return msg.text || "";
+}
+
+function truncateForPreview(text, max){
+  const s = String(text || "");
+  return s.length > max ? s.slice(0, max).trimEnd() + "…" : s;
+}
+
+function startReply(messageId, senderName, text){
+  activeReplyTo = {
+    messageId,
+    senderName: senderName || "Anonymous",
+    text: truncateForPreview(text, 120)
+  };
+  replyPreviewName.textContent = activeReplyTo.senderName;
+  replyPreviewText.textContent = activeReplyTo.text;
+  replyPreviewBar.style.display = "flex";
+  userInput.focus();
+}
+
+function cancelReply(){
+  activeReplyTo = null;
+  replyPreviewBar.style.display = "none";
+}
+replyPreviewCancelBtn.addEventListener("click", cancelReply);
+
+function scrollToOriginalMessage(messageId){
+  if (!messageId) return;
+  const target = chatBox.querySelector(`[data-message-key="${CSS.escape(messageId)}"]`);
+  if (!target) return; // original not present (pruned, in another room, etc.) — fail silently, never break the chat
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  target.classList.add("reply-highlight");
+  setTimeout(() => target.classList.remove("reply-highlight"), 1200);
+}
+
+// Swipe (touch) / drag (mouse) to reply — one Pointer Events implementation covers
+// both. touch-action:pan-y on .message (CSS) keeps native vertical scrolling smooth;
+// this only ever engages once a gesture is clearly more horizontal than vertical,
+// so normal scrolling is never intercepted.
+const REPLY_SWIPE_THRESHOLD = 56;
+const REPLY_SWIPE_MAX = 64;
+
+function attachReplyGesture(msgDiv, onTrigger){
+  let startX = 0, startY = 0, dx = 0, direction = null, pointerId = null;
+
+  function reset(){
+    msgDiv.style.transform = "";
+    startX = startY = dx = 0;
+    direction = null;
+    pointerId = null;
+  }
+
+  msgDiv.addEventListener("pointerdown", e => {
+    if (pointerId !== null) return; // one gesture at a time per message
+    pointerId = e.pointerId;
+    startX = e.clientX;
+    startY = e.clientY;
+    direction = null;
+  });
+
+  msgDiv.addEventListener("pointermove", e => {
+    if (pointerId !== e.pointerId) return;
+    const moveX = e.clientX - startX;
+    const moveY = e.clientY - startY;
+
+    if (direction === null){
+      if (Math.abs(moveX) < 10 && Math.abs(moveY) < 10) return; // too small to judge intent yet
+      direction = Math.abs(moveX) > Math.abs(moveY) * 1.5 ? "horizontal" : "vertical";
+      if (direction === "vertical") return; // let native scrolling take over, untouched
+    }
+    if (direction !== "horizontal") return;
+
+    e.preventDefault(); // only once horizontal intent is confirmed — never blocks a vertical scroll
+    dx = Math.max(-REPLY_SWIPE_MAX, Math.min(REPLY_SWIPE_MAX, moveX));
+    msgDiv.style.transform = `translateX(${dx}px)`;
+  });
+
+  function finish(e){
+    if (pointerId !== e.pointerId) return;
+    const triggered = direction === "horizontal" && Math.abs(dx) >= REPLY_SWIPE_THRESHOLD;
+    reset();
+    if (triggered) onTrigger();
+  }
+  msgDiv.addEventListener("pointerup", finish);
+  msgDiv.addEventListener("pointercancel", finish);
 }
 
 // only allow the Dicebear host we generate avatars from — defensive,
