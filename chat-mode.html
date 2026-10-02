@@ -1844,6 +1844,7 @@ function sendMessage(){
     text,
     timestamp,
     user: nickname,
+    senderId: sessionId,
     avatar: avatarURL,
     reactions: {},
     replyTo: activeReplyTo ? { ...activeReplyTo } : null
@@ -2222,6 +2223,7 @@ function uploadAndSendVoiceMessage(blob, durationSec){
           text: "",
           timestamp,
           user: nickname,
+          senderId: sessionId,
           avatar: avatarURL,
           reactions: {},
           replyTo: null
@@ -2322,7 +2324,10 @@ function paletteForName(name){
 }
 
 function renderMessage(msg, key){
-  const isMine = msg.user === nickname;
+  // Ownership is decided by the unique per-session senderId, so two people with the same
+  // nickname no longer both appear as "mine". Messages without a senderId (older messages,
+  // AI replies written by the server) fall back to the original nickname comparison.
+  const isMine = msg.senderId ? msg.senderId === sessionId : msg.user === nickname;
 
   const msgDiv = document.createElement("div");
   msgDiv.className = "message " + (isMine ? "outgoing" : "incoming");
